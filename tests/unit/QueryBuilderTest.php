@@ -23,7 +23,7 @@ class QueryBuilderTest extends TestCase
         return [];
     }
 
-    public function stubDml($query, $params,)
+    public function stubDml($query, $params)
     {
         $this->queries['delete'][] = [
             'query' => $query,
