@@ -1268,7 +1268,7 @@ $user->removeJsonSchema();
 ### Licensing
 
 DocLite is available under the GNU GPL v3 license as open source software. 
-Pleae contact me if you would like to obtain a license for DocLite under 
+Please contact me if you would like to obtain a license for DocLite under 
 different terms.
 
 If you use DocLite and find it useful, I am very grateful for any support 
