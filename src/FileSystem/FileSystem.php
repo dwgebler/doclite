@@ -247,7 +247,7 @@ class FileSystem implements FileSystemInterface
         $dirName = dirname($path);
         $fileName = basename($path);
         if (!is_dir($dirName)) {
-            if (!@mkdir($dirName, 0644, true)) {
+            if (!@mkdir($dirName, 0755, true)) {
                 throw new IOException(sprintf(
                     'Path [%s] could not be created',
                     $path

@@ -49,7 +49,6 @@ A powerful PHP NoSQL document store built on top of SQLite.
 - [Other info](#other-info)
   - [Licensing](#licensing)
   - [Bugs, issues](#bugs-issues)
-  - [Contributing, forking](#contributing-forking)
   - [Contact the author](#contact-the-author)
   
 ## About DocLite
