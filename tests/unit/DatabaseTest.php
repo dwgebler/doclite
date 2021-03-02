@@ -7,7 +7,7 @@ use Gebler\Doclite\Database;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\FileDatabase;
 use Gebler\Doclite\MemoryDatabase;
-use Gebler\Doclite\Tests\Fakes\FakeFileSystem;
+use Gebler\Doclite\Tests\fakes\FakeFileSystem;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
