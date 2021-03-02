@@ -25,7 +25,7 @@
     "autoload-dev": {
         "psr-4": { "Gebler\\Doclite\\Tests\\": "tests/" }
     },
-    "license": "GPL-3.0-or-commercial",
+    "license": "GPL-3.0-only",
     "authors": [
         {
             "name": "David Gebler"
