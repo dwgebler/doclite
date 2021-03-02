@@ -1267,13 +1267,12 @@ $user->removeJsonSchema();
 
 ### Licensing
 
-DocLite is available under both the GNU GPL v3 license as open source software,
-and a separate commercial license which is available to purchase for any users who 
-require different terms. Please send any license enquiries to info@doclite.co.uk.
+DocLite is available under the GNU GPL v3 license as open source software. 
+Pleae contact me if you would like to obtain a license for DocLite under 
+different terms.
 
 If you use DocLite and find it useful, I am very grateful for any support 
-towards its future development. You can donate to the project via Paypal by 
-clicking the button below. 
+towards its future development. 
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate?business=info%40doclite.co.uk&item_name=DocLite+PHP+library&currency_code=GBP)
 
@@ -1281,17 +1280,6 @@ clicking the button below.
 
 Please raise an issue on the project GitHub if you encounter any problems. I am 
 always interested in improving the software.
-
-### Contributing, forking
-
-DocLite is open source but not open contribution. Pull requests from outside the 
-project will not be accepted in to the official repo. This is unfortunately a 
-necessary restriction because I also offer a separate commercial license and 
-cannot have code in the official distribution which is outside my copyright.
-
-GPL licensed users are welcome to fork DocLite and are free to 
-copy, modify, and distribute it in accordance with the terms of the GNU GPL 
-v3 license.
 
 ### Contact the author
 
