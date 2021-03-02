@@ -17,6 +17,9 @@ class DatabaseConnectionTest extends TestCase
 
     public function setUp(): void
     {
+        if (\PHP_VERSION_ID < 80000) {
+            $this->markTestSkipped('These tests only run on PHP 8 due to fake PDO implementation');
+        }
         $this->stmt = new FakePDOStatement();
         $this->pdo = new FakePDO($this->stmt);
         $this->stmt->setResult(['ENABLE_JSON1']);
