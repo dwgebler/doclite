@@ -154,4 +154,4 @@ To learn more about the `Collection` object including how to query a document st
 documentation below.
 </details>
 
-For full documentation, please see the project [on GitHub](https://github.com/dwgebler/doclite).
+For full documentation, please see the project [on GitHub](https://github.com/dwgebler/doclite)
