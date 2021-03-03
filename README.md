@@ -647,9 +647,9 @@ foreach($userCollection->findAll() as $user) {
 DocLite includes a powerful query building mechanism to retrieve or delete all documents 
 in a collection matching arbitrary criteria.
 
-To build a query, use any combination of the `where()`, `and()`, `or()`, `limit()`, 
-`offset()` and `orderBy()` 
-functions on the collection object, followed by a call to `fetch()` or `delete()`.
+To build a query, use any combination of the `where()`, `and()`, `or()`, `limit()`,
+`offset()` and `orderBy()` functions on the collection object, followed by a 
+call to `fetch()`, `delete()` or `count()`.
 
 You can also run nested queries to group clauses together via `union()` 
 (for grouping clauses by `OR`) and `intersect()` (for grouping clauses by `AND`).
