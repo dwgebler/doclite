@@ -51,8 +51,7 @@ as the underlying SQLite engine it is built on, but where you desire a NoSQL sol
 
 ## Getting Started
 
-<details>
-<summary>System requirements</summary>
+### System requirements
 
 - PHP 7.4 or above
 
@@ -60,18 +59,14 @@ as the underlying SQLite engine it is built on, but where you desire a NoSQL sol
 
 (on most systems, if you're running PHP 7.4 you probably already meet the second 
 requirement)
-</details>
 
-<details>
-<summary>Installation</summary>
+### Installation
 
 Install with [Composer](https://getcomposer.org/)
 
 `composer require dwgebler/doclite`
-</details>
 
-<details>
-<summary>Usage Overview</summary>
+### Usage Overview
 
 DocLite provides both a `FileDatabase` and `MemoryDatabase` implementation. 
 To create or open an existing database, simply create a `Database` object, specifying the file path if using a `FileDatabase`.
@@ -150,8 +145,5 @@ $user = $users->get($id, CustomUser::class);
 $users->save($user);
 ```
 
-To learn more about the `Collection` object including how to query a document store, please read the full 
-documentation below.
-</details>
 
 For full documentation, please see the project [on GitHub](https://github.com/dwgebler/doclite)
