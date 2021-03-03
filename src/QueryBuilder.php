@@ -381,6 +381,10 @@ class QueryBuilder implements QueryBuilderInterface
             }
         }
 
+        if (empty($wherePart)) {
+            $wherePart = '1';
+        }
+
         $orderPart = $this->forgeOrderClause();
         if (empty($orderPart)) {
             $orderPart = sprintf('"%s".ROWID', $this->collection->getName());

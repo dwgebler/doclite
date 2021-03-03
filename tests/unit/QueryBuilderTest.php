@@ -66,6 +66,14 @@ class QueryBuilderTest extends TestCase
         $this->assertStringStartsWith($expected, $query['query']);
     }
 
+    public function testDefaultWhereAll()
+    {
+        $this->builder->fetch();
+        $expected = 'SELECT DISTINCT "test".ROWID, "test".json FROM "test" WHERE 1';
+        $query = array_shift($this->queries['select']);
+        $this->assertStringStartsWith($expected, $query['query']);
+    }
+
     public function testOrderByAsc()
     {
         $this->builder->where('foo', '=', 'bar')->orderBy('baz')->fetch();
