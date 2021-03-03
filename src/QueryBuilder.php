@@ -114,7 +114,6 @@ class QueryBuilder implements QueryBuilderInterface
     {
         $this->validateFieldName($field);
         list($operator, $valueModifier) = $this->validateCondition(strtoupper($condition));
-        $field = str_replace('/', '\\/', $field);
         $isPath = substr_compare($field, '[]', -2) === 0;
         if ($isPath) {
             $field = substr($field, 0, -2);
@@ -296,9 +295,9 @@ class QueryBuilder implements QueryBuilderInterface
         int &$treeCount,
         array &$treeFields
     ): void {
-        $treeTemplate = sprintf("json_tree(\"%s\".json, '$.%%s') AS t%%d", $this->collection->getName());
+        $treeTemplate = sprintf(", json_tree(\"%s\".json, '$.%%s') AS t%%d", $this->collection->getName());
         $rootTemplate = sprintf("%%s (json_extract(\"%s\".json, '$.%%s') %%s %%s) ", $this->collection->getName());
-        $pathTemplate = "%1\$s (%2\$s.path='$.%3\$s' AND %2\$s.value %4\$s %5\$s) ";
+        $pathTemplate = "%1\$s (%2\$s.value %3\$s %4\$s) ";
 
         if (is_array($condition['value'])) {
             $condition['value'] = json_encode($condition['value']);
@@ -334,7 +333,6 @@ class QueryBuilder implements QueryBuilderInterface
                 $pathTemplate,
                 $condition['condition'],
                 't' . $treeCount,
-                $condition['field'],
                 $condition['operator'],
                 $parameterPart
             );
@@ -388,10 +386,6 @@ class QueryBuilder implements QueryBuilderInterface
         $orderPart = $this->forgeOrderClause();
         if (empty($orderPart)) {
             $orderPart = sprintf('"%s".ROWID', $this->collection->getName());
-        }
-
-        if (!empty($treePart)) {
-            $treePart = ', ' . $treePart;
         }
 
         return sprintf($queryTemplate, $treePart, $wherePart, $orderPart, $limitPart, $offsetPart);

@@ -747,10 +747,10 @@ $next10UsersOrderedByFirstName = $users->orderBy('first_name', 'ASC')
                                        ->offset(10)
                                        ->fetch();                                                               
 
-$usersWithPostAccessToPagesApi = $users->where(
-    'api_access./v1/pages/', '=', 'POST')->fetch();                                     
-
 // Use [] on any field which is a list to search within its sub-items
+$usersWithPostAccessToPagesApi = $users->where(
+    'api_access./v1/pages/[]', '=', 'POST')->fetch();                                     
+
 $allUsersWithPostAccessToAnyApi = $users->where('api_access[]', '=', 'POST')
                                         ->fetch();
 
