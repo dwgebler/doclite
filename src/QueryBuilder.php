@@ -42,9 +42,20 @@ class QueryBuilder implements QueryBuilderInterface
         'NOT EMPTY' => ['op' => 'IS NOT NULL', 'val' => ''],
     ];
     /**
+     * @var string
+     */
+    private string $currentQueryKey;
+    /**
      * @var array
      */
-    private array $queryConditions = [];
+    private array $queryConditions = [
+        'where' => [],
+        'and' => [],
+        'or' => [],
+        'order' => [],
+        'offset' => 0,
+        'limit' => -1,
+    ];
     /**
      * @var array
      */
@@ -57,6 +68,7 @@ class QueryBuilder implements QueryBuilderInterface
     public function __construct(Collection $collection)
     {
         $this->collection = $collection;
+        $this->currentQueryKey = 'where';
     }
 
     /**
@@ -67,9 +79,9 @@ class QueryBuilder implements QueryBuilderInterface
      */
     private function validateFieldName(string $name)
     {
-        if (!preg_match('/^[\/A-Za-z0-9._\[\]]+$/', $name)) {
+        if (!preg_match('/^["\/A-Za-z0-9._\[\]]+$/', $name)) {
             throw new InvalidArgumentException(sprintf('Invalid field name "%s"; may contain only alphanumeric, ' .
-                'dot, underscore and square bracket characters', $name));
+                'dot, slash, quote, underscore and square bracket characters', $name));
         }
     }
 
@@ -108,14 +120,22 @@ class QueryBuilder implements QueryBuilderInterface
             $field = substr($field, 0, -2);
         }
 
-        $this->queryConditions[] = [
-            'type' => $type,
+        $queryCondition = [
             'field' => $field,
             'operator' => $operator,
             'value' => $value,
             'path' => $isPath,
             'valueModifier' => $valueModifier,
+            'condition' => $type,
         ];
+
+        if (empty($this->queryConditions[$this->currentQueryKey])) {
+            $queryCondition['condition'] = '';
+        }
+
+        $this->queryConditions[$this->currentQueryKey][] = $queryCondition;
+
+
         return $this;
     }
 
@@ -123,12 +143,11 @@ class QueryBuilder implements QueryBuilderInterface
      * Join OR
      * @return QueryBuilderInterface
      */
-    public function joinOr(): QueryBuilderInterface
+    public function union(): QueryBuilderInterface
     {
-        $this->queryConditions[] = [
-            'type' => 'JOIN',
-            'value' => 'OR',
-        ];
+        if (!empty($this->queryConditions['where'])) {
+            $this->currentQueryKey = 'or';
+        }
         return $this;
     }
 
@@ -136,12 +155,11 @@ class QueryBuilder implements QueryBuilderInterface
      * Join OR
      * @return QueryBuilderInterface
      */
-    public function joinAnd(): QueryBuilderInterface
+    public function intersect(): QueryBuilderInterface
     {
-        $this->queryConditions[] = [
-            'type' => 'JOIN',
-            'value' => 'AND',
-        ];
+        if (!empty($this->queryConditions['where'])) {
+            $this->currentQueryKey = 'and';
+        }
         return $this;
     }
 
@@ -174,10 +192,7 @@ class QueryBuilder implements QueryBuilderInterface
      */
     public function limit(?int $limit): QueryBuilderInterface
     {
-        $this->queryConditions[] = [
-            'type' => 'LIMIT',
-            'value' => $limit,
-        ];
+        $this->queryConditions['limit'] = $limit;
         return $this;
     }
 
@@ -186,10 +201,7 @@ class QueryBuilder implements QueryBuilderInterface
      */
     public function offset(?int $offset): QueryBuilderInterface
     {
-        $this->queryConditions[] = [
-            'type' => 'OFFSET',
-            'value' => $offset,
-        ];
+        $this->queryConditions['offset'] = $offset;
         return $this;
     }
 
@@ -203,8 +215,7 @@ class QueryBuilder implements QueryBuilderInterface
         if ($direction !== "ASC" && $direction !== "DESC") {
             throw new InvalidArgumentException('Sort order must be ASC or DESC');
         }
-        $this->queryConditions[] = [
-            'type' => 'ORDERBY',
+        $this->queryConditions['order'][] = [
             'field' => $field,
             'value' => $direction,
         ];
@@ -212,14 +223,28 @@ class QueryBuilder implements QueryBuilderInterface
     }
 
     /**
+     * @inheritdoc
+     */
+    public function count(): int
+    {
+        $selectQuery = rtrim($this->getSelectQuery(), ';');
+        $query = 'SELECT COUNT(*) AS c FROM (' . $selectQuery . ');';
+        $result = $this->collection->executeDqlQuery($query, $this->queryParameters, true);
+        if (isset($result[0]['c'])) {
+            return (int)$result[0]['c'];
+        }
+        return 0;
+    }
+
+    /**
      * @inheritDoc
-     * @throws DatabaseException
      */
     public function fetch(?string $className = null, ?string $idField = null): array
     {
         return $this->collection->executeDqlQuery(
             $this->getSelectQuery(),
             $this->queryParameters,
+            false,
             $className,
             $idField
         );
@@ -227,7 +252,6 @@ class QueryBuilder implements QueryBuilderInterface
 
     /**
      * @inheritDoc
-     * @throws DatabaseException
      */
     public function delete(): int
     {
@@ -238,21 +262,44 @@ class QueryBuilder implements QueryBuilderInterface
     }
 
     /**
-     * Forge an individual WHERE clause of a SELECT statement.
-     * @param string $basePart
-     * @param string $treePart
-     * @param string $joinPart
+     * Forge the ORDER BY clause of a SELECT statement.
+     *
+     * @return string The order by conditions.
+     */
+    private function forgeOrderClause(): string
+    {
+        $orderParts = [];
+        foreach ($this->queryConditions['order'] as $order) {
+            $orderParts[] = sprintf(
+                'json_extract("%s".json, \'$.%s\') %s',
+                $this->collection->getName(),
+                $order['field'],
+                $order['value']
+            );
+        }
+        return implode(', ', $orderParts);
+    }
+
+    /**
+     * Forge the WHERE clause of a statement.
      * @param array $condition
-     * @param array $queryParts
+     * @param string $wherePart
+     * @param string $treePart
+     * @param int $treeCount
+     * @param array $treeFields
      * @return void
      */
     private function forgeWhereClause(
-        string $basePart,
-        string $treePart,
-        string $joinPart,
         array $condition,
-        array &$queryParts
+        string &$wherePart,
+        string &$treePart,
+        int &$treeCount,
+        array &$treeFields
     ): void {
+        $treeTemplate = sprintf("json_tree(\"%s\".json, '$.%%s') AS t%%d", $this->collection->getName());
+        $rootTemplate = sprintf("%%s (json_extract(\"%s\".json, '$.%%s') %%s %%s) ", $this->collection->getName());
+        $pathTemplate = "%1\$s (%2\$s.path='$.%3\$s' AND %2\$s.value %4\$s %5\$s) ";
+
         if (is_array($condition['value'])) {
             $condition['value'] = json_encode($condition['value']);
         }
@@ -266,22 +313,31 @@ class QueryBuilder implements QueryBuilderInterface
             $parameterPart = '';
         } else {
             $this->queryParameters[] = $condition['valueModifier'] ?
-                sprintf(
-                    $condition['valueModifier'],
-                    $condition['value']
-                ) : $condition['value'];
+                sprintf($condition['valueModifier'], $condition['value']) : $condition['value'];
         }
-        $sqlPart = sprintf(
-            "(%s='$.%s' AND json_tree.value %s %s)",
-            $treePart,
-            $condition['field'],
-            $condition['operator'],
-            $parameterPart
-        );
-        if (count($queryParts) === 0) {
-            $queryParts[] = $sqlPart;
+
+        if (!$condition['path']) {
+            $wherePart .= sprintf(
+                $rootTemplate,
+                $condition['condition'],
+                $condition['field'],
+                $condition['operator'],
+                $parameterPart
+            );
         } else {
-            $queryParts[] = $joinPart . $basePart . $sqlPart;
+            if (!in_array($condition['field'], $treeFields)) {
+                $treeCount += 1;
+                $treePart .= sprintf($treeTemplate, $condition['field'], $treeCount);
+                $treeFields[] = $condition['field'];
+            }
+            $wherePart .= sprintf(
+                $pathTemplate,
+                $condition['condition'],
+                't' . $treeCount,
+                $condition['field'],
+                $condition['operator'],
+                $parameterPart
+            );
         }
     }
 
@@ -305,103 +361,35 @@ class QueryBuilder implements QueryBuilderInterface
      */
     private function getSelectQuery(): string
     {
-        $query = '';
-        $queryParts = [];
-        $baseSelect = sprintf("SELECT DISTINCT \"%2\$s\".ROWID, json_extract" .
-            "(\"%2\$s\".json,'\$.%1\$s'), \"%2\$s\".json " .
-            "FROM \"%2\$s\", json_tree(\"%2\$s\".json, '\$') WHERE ", Database::ID_FIELD, $this->collection->getName());
-        $currentLimit = -1;
-        $currentOffset = 0;
-        $limitClause = "LIMIT 0, -1";
-        $orderClause = "";
-        $hasOrderBy = false;
-        $orderByField = '';
-        $closingPart = '';
-        $hasJoin = false;
-        $skipUnionIntersect = false;
-        foreach ($this->queryConditions as $condition) {
-            $treePart = 'json_tree.fullkey';
-            if (!empty($condition['path'])) {
-                $treePart = 'json_tree.path';
-            }
-            switch ($condition['type']) {
-                case 'JOIN':
-                    if (count($queryParts) === 0) {
-                        continue 2;
-                    }
-                    $joinPart = " INTERSECT ";
-                    if ($condition['value'] === 'OR') {
-                        $joinPart = " UNION ";
-                    }
-                    if ($hasJoin) {
-                        $joinPart = ') ' . $joinPart;
-                    }
-                    $sqlPart = $joinPart . "SELECT * FROM (";
-                    $closingPart = ')';
-                    $hasJoin = true;
-                    $queryParts[] = $sqlPart;
-                    $skipUnionIntersect = true;
+        $baseSelect = sprintf('SELECT DISTINCT "%1$s".ROWID, "%1$s".json FROM "%1$s"', $this->collection->getName());
+        $queryTemplate = $baseSelect . '%s WHERE %s ORDER BY %s LIMIT %d OFFSET %d;';
+        $wherePart = '';
+        $treePart = '';
+        $treeCount = 0;
+        $treeFields = [];
+        $limitPart = $this->queryConditions['limit'];
+        $offsetPart = $this->queryConditions['offset'];
 
-                    break;
-                case 'AND':
-                    $intersectPart = $skipUnionIntersect ? '' : " INTERSECT ";
-                    $skipUnionIntersect = false;
-                    $this->forgeWhereClause($baseSelect, $treePart, $intersectPart, $condition, $queryParts);
-
-                    break;
-                case 'OR':
-                    $unionPart = $skipUnionIntersect ? '' : " UNION ";
-                    $skipUnionIntersect = false;
-                    $this->forgeWhereClause($baseSelect, $treePart, $unionPart, $condition, $queryParts);
-
-                    break;
-                case 'LIMIT':
-                    $currentLimit = $condition['value'];
-                    $limitClause = sprintf("LIMIT %d,%d", $currentOffset, $currentLimit);
-                    break;
-                case 'OFFSET':
-                    $currentOffset = $condition['value'];
-                    $limitClause = sprintf("LIMIT %d,%d", $currentOffset, $currentLimit);
-                    break;
-                case 'ORDERBY':
-                    $orderClause = sprintf(
-                        "ORDER BY json_extract(\"%s\".json,'$.%s') %s",
-                        $this->collection->getName(),
-                        $condition['field'],
-                        $condition['value']
-                    );
-                    $hasOrderBy = true;
-                    $orderByField = $condition['field'];
-
-                    break;
+        $whereGroups = ['where' => '', 'and' => ' AND ', 'or' => ' OR '];
+        foreach ($whereGroups as $group => $sqlWord) {
+            if (!empty($this->queryConditions[$group])) {
+                $wherePart .= $sqlWord . '(';
+                foreach ($this->queryConditions[$group] as $condition) {
+                    $this->forgeWhereClause($condition, $wherePart, $treePart, $treeCount, $treeFields);
+                }
+                $wherePart .= ')';
             }
         }
 
-        if (empty($queryParts)) {
-            $queryParts[] = '1';
+        $orderPart = $this->forgeOrderClause();
+        if (empty($orderPart)) {
+            $orderPart = sprintf('"%s".ROWID', $this->collection->getName());
         }
 
-        $query = $baseSelect
-            . implode('', $queryParts)
-            . $closingPart
-            . " "
-            . $orderClause
-            . " "
-            . $limitClause
-            . ";";
-        // Order By clause must be a column in the final result.
-        if ($hasOrderBy) {
-            $query = str_replace(
-                'SELECT DISTINCT ',
-                sprintf(
-                    'SELECT DISTINCT json_extract("%s".json,\'$.%s\'), ',
-                    $this->collection->getName(),
-                    $orderByField
-                ),
-                $query
-            );
+        if (!empty($treePart)) {
+            $treePart = ', ' . $treePart;
         }
 
-        return $query;
+        return sprintf($queryTemplate, $treePart, $wherePart, $orderPart, $limitPart, $offsetPart);
     }
 }

@@ -524,7 +524,7 @@ on the collection with the document object as a parameter.
 $newUser->save();
 
 // works for both DocLite documents and documents mapped to custom types
-$userColllection->save($newUser);
+$userCollection->save($newUser);
 ```
 
 ### Retrieve a document
@@ -593,7 +593,7 @@ collection itself.
 $user->delete();
 
 // works for both DocLite documents and documents mapped to custom types
-$userColllection->deleteDocument($user);
+$userCollection->deleteDocument($user);
 ```
 
 
@@ -651,8 +651,8 @@ To build a query, use any combination of the `where()`, `and()`, `or()`, `limit(
 `offset()` and `orderBy()` 
 functions on the collection object, followed by a call to `fetch()` or `delete()`.
 
-You can also run nested queries to group clauses together via `joinOr()` and 
-`joinAnd()`.
+You can also run nested queries to group clauses together via `union()` 
+(for grouping clauses by `OR`) and `intersect()` (for grouping clauses by `AND`).
 
 You can query a document to any depth by separating nested fields with a `.` dot character, 
 you can also add square brackets `[]` to the end of a field which is a list to query 
@@ -763,7 +763,7 @@ $allUsersWithPostAccessToAnyApi = $users->where('api_access[]', '=', 'POST')
  */
 $nestedUsers = $users->where('active', '=', true)
                      ->and('address.postcode', 'MATCHES', '^[A-Za-z0-9 ]*$')
-                     ->joinOr()
+                     ->union()
                      ->where('roles[]', '=', 'EDITOR')
                      ->and('lastLogin', '>', '2021-01-30')
                      ->fetch();

@@ -162,9 +162,10 @@ class Collection implements QueryBuilderInterface
     }
 
     /**
-     * Execute a DQL query and fetch results as documents.
+     * Execute a DQL query and fetch results as documents or raw array.
      * @param string $query
      * @param array $parameters
+     * @param bool $fetchRaw Fetch raw array
      * @param ?string $class Custom class name
      * @param ?string $classIdProperty Custom class ID property
      * @return array
@@ -173,6 +174,7 @@ class Collection implements QueryBuilderInterface
     public function executeDqlQuery(
         string $query,
         array $parameters,
+        bool $fetchRaw = false,
         ?string $class = null,
         ?string $classIdProperty = null
     ): array {
@@ -186,6 +188,10 @@ class Collection implements QueryBuilderInterface
             if ($this->cachingEnabled) {
                 $this->setCache('dqlQuery', [$query, $parameters], $results);
             }
+        }
+
+        if ($fetchRaw) {
+            return $results;
         }
 
         foreach ($results as $result) {
@@ -728,17 +734,25 @@ class Collection implements QueryBuilderInterface
     /**
      * @inheritDoc
      */
-    public function joinOr(): QueryBuilderInterface
+    public function union(): QueryBuilderInterface
     {
-        return (new QueryBuilder($this))->joinOr();
+        return (new QueryBuilder($this))->union();
     }
 
     /**
      * @inheritDoc
      */
-    public function joinAnd(): QueryBuilderInterface
+    public function intersect(): QueryBuilderInterface
     {
-        return (new QueryBuilder($this))->joinAnd();
+        return (new QueryBuilder($this))->intersect();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function count(): int
+    {
+        return (new QueryBuilder($this))->count();
     }
 
     /**

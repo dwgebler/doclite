@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Gebler\Doclite;
 
+use Gebler\Doclite\Exception\DatabaseException;
+
 interface QueryBuilderInterface
 {
     /**
-     * Join OR; create a new condition group selected by OR
+     * Union; create a new condition group selected by OR
      * @return QueryBuilderInterface
      */
-    public function joinOr(): self;
+    public function union(): self;
     /**
-     * Join AND; create a new condition group selected by AND
+     * Intersect; create a new condition group selected by AND
      * @return QueryBuilderInterface
      */
-    public function joinAnd(): self;
+    public function intersect(): self;
     /**
      * Where clause
      * @param string $field
@@ -64,11 +66,19 @@ interface QueryBuilderInterface
      * @param string|null $className Custom class name
      * @param string|null $idField Custom class ID field
      * @return array
+     * @throws DatabaseException
      */
     public function fetch(?string $className, ?string $idField): array;
     /**
      * Delete query results and return affected rows.
      * @return int
+     * @throws DatabaseException
      */
     public function delete(): int;
+    /**
+     * Count query results.
+     * @throws DatabaseException
+     * @return int
+     */
+    public function count(): int;
 }

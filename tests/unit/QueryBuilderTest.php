@@ -61,7 +61,7 @@ class QueryBuilderTest extends TestCase
     public function testBasicSelect()
     {
         $this->builder->where('foo', '=', 'bar')->fetch();
-        $expected = 'SELECT DISTINCT "test".ROWID, json_extract("test".json,\'$.__id\'), "test".json FROM "test", json_tree("test".json, \'$\') WHERE ';
+        $expected = 'SELECT DISTINCT "test".ROWID, "test".json FROM "test" WHERE ( (json_extract("test".json, \'$.foo\') = ?) ) ORDER BY "test".ROWID LIMIT -1 OFFSET 0';
         $query = array_shift($this->queries['select']);
         $this->assertStringStartsWith($expected, $query['query']);
     }
@@ -69,105 +69,105 @@ class QueryBuilderTest extends TestCase
     public function testOrderByAsc()
     {
         $this->builder->where('foo', '=', 'bar')->orderBy('baz')->fetch();
-        $expected = 'ORDER BY json_extract("test".json,\'$.baz\') ASC';
+        $expected = 'ORDER BY json_extract("test".json, \'$.baz\') ASC';
         $this->assertSelectQueryContains($expected);
     }
 
     public function testOrderByDesc()
     {
         $this->builder->where('foo', '=', 'bar')->orderBy('baz', 'desc')->fetch();
-        $expected = 'ORDER BY json_extract("test".json,\'$.baz\') DESC';
+        $expected = 'ORDER BY json_extract("test".json, \'$.baz\') DESC';
         $this->assertSelectQueryContains($expected);
     }
 
     public function testDefaultOffSetLimit()
     {
         $this->builder->where('foo', '=', 'bar')->fetch();
-        $expected = "LIMIT 0, -1";
+        $expected = "LIMIT -1 OFFSET 0";
         $this->assertSelectQueryContains($expected);
     }
 
     public function testCustomLimitDefaultOffset()
     {
         $this->builder->where('foo', '=', 'bar')->limit(50)->fetch();
-        $expected = "LIMIT 0,50";
+        $expected = "LIMIT 50 OFFSET 0";
         $this->assertSelectQueryContains($expected);
     }
 
     public function testCustomOffsetDefaultLimit()
     {
         $this->builder->where('foo', '=', 'bar')->offset(50)->fetch();
-        $expected = "LIMIT 50,-1";
+        $expected = "LIMIT -1 OFFSET 50";
         $this->assertSelectQueryContains($expected);
     }
 
     public function testCustomLimitCustomOffset()
     {
         $this->builder->where('foo', '=', 'bar')->offset(40)->limit(50)->fetch();
-        $expected = "LIMIT 40,50";
+        $expected = "LIMIT 50 OFFSET 40";
         $this->assertSelectQueryContains($expected);
     }
 
     public function testWhereContains()
     {
         $this->builder->where('foo', 'CONTAINS', 'bar')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value LIKE ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') LIKE ?)";
         $this->assertSelectQueryContains($expected, ['%bar%']);
     }
 
     public function testWhereStartsWith()
     {
         $this->builder->where('foo', 'STARTS', 'bar')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value LIKE ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') LIKE ?)";
         $this->assertSelectQueryContains($expected, ['bar%']);
     }
 
     public function testWhereEndsWith()
     {
         $this->builder->where('foo', 'ENDS', 'bar')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value LIKE ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') LIKE ?)";
         $this->assertSelectQueryContains($expected, ['%bar']);
     }
 
     public function testWhereNotContains()
     {
         $this->builder->where('foo', 'NOT CONTAINS', 'bar')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value NOT LIKE ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') NOT LIKE ?)";
         $this->assertSelectQueryContains($expected, ['%bar%']);
     }
 
     public function testWhereNotStartsWith()
     {
         $this->builder->where('foo', 'NOT STARTS', 'bar')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value NOT LIKE ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') NOT LIKE ?)";
         $this->assertSelectQueryContains($expected, ['bar%']);
     }
 
     public function testWhereNotEndsWith()
     {
         $this->builder->where('foo', 'NOT ENDS', 'bar')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value NOT LIKE ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') NOT LIKE ?)";
         $this->assertSelectQueryContains($expected, ['%bar']);
     }
 
     public function testWhereRegExp()
     {
         $this->builder->where('foo', 'MATCHES', '^[A-Za-z]*$')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value REGEXP ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') REGEXP ?)";
         $this->assertSelectQueryContains($expected, ['^[A-Za-z]*$']);
     }
 
     public function testWhereNotRegExp()
     {
         $this->builder->where('foo', 'NOT MATCHES', '^[A-Za-z]*$')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value NOT REGEXP ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') NOT REGEXP ?)";
         $this->assertSelectQueryContains($expected, ['^[A-Za-z]*$']);
     }
 
     public function testWhereIsNull()
     {
         $this->builder->where('foo', 'EMPTY')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value IS NULL )";
+        $expected = "(json_extract(\"test\".json, '$.foo') IS NULL )";
         $this->assertEmpty($this->queries['select'][0]['params']);
         $this->assertSelectQueryContains($expected);
     }
@@ -175,7 +175,7 @@ class QueryBuilderTest extends TestCase
     public function testWhereIsNotNull()
     {
         $this->builder->where('foo', 'NOT EMPTY')->fetch();
-        $expected = "(json_tree.fullkey='$.foo' AND json_tree.value IS NOT NULL )";
+        $expected = "(json_extract(\"test\".json, '$.foo') IS NOT NULL )";
         $this->assertEmpty($this->queries['select'][0]['params']);
         $this->assertSelectQueryContains($expected);
     }
@@ -184,8 +184,7 @@ class QueryBuilderTest extends TestCase
     {
         $this->builder->where('foo', '=', 'bar')
             ->and('bar', '<', 100)->fetch();
-        $expected = ["(json_tree.fullkey='$.foo' AND json_tree.value = ?) INTERSECT"];
-        $expected[] = "(json_tree.fullkey='$.bar' AND json_tree.value < ?)";
+        $expected ="(json_extract(\"test\".json, '$.foo') = ?) AND (json_extract(\"test\".json, '$.bar') < ?)";
         $this->assertSelectQueryContains($expected);
     }
 
@@ -193,8 +192,7 @@ class QueryBuilderTest extends TestCase
     {
         $this->builder->where('foo', '=', 'bar')
             ->or('bar', '<', 100)->fetch();
-        $expected = ["(json_tree.fullkey='$.foo' AND json_tree.value = ?) UNION"];
-        $expected[] = "(json_tree.fullkey='$.bar' AND json_tree.value < ?)";
+        $expected = "(json_extract(\"test\".json, '$.foo') = ?) OR (json_extract(\"test\".json, '$.bar') < ?)";
         $this->assertSelectQueryContains($expected);
     }
 
@@ -202,12 +200,10 @@ class QueryBuilderTest extends TestCase
     {
         $this->builder->where('foo', '=', 'bar')
             ->or('bar', '<', 100)
-            ->joinAnd()
+            ->intersect()
             ->where('baz', '>=', 200)
             ->fetch();
-        $expected = ["(json_tree.fullkey='$.foo' AND json_tree.value = ?) UNION"];
-        $expected[] = "(json_tree.fullkey='$.bar' AND json_tree.value < ?)";
-        $expected[] = 'INTERSECT SELECT * FROM (SELECT DISTINCT "test".ROWID, json_extract("test".json,\'$.__id\'), "test".json FROM "test", json_tree("test".json, \'$\') WHERE (json_tree.fullkey=\'$.baz\' AND json_tree.value >= ?))';
+        $expected = "( (json_extract(\"test\".json, '$.foo') = ?) OR (json_extract(\"test\".json, '$.bar') < ?) ) AND ( (json_extract(\"test\".json, '$.baz') >= ?) )";
         $this->assertSelectQueryContains($expected);
     }
 
@@ -215,12 +211,10 @@ class QueryBuilderTest extends TestCase
     {
         $this->builder->where('foo', '=', 'bar')
             ->or('bar', '<', 100)
-            ->joinOr()
+            ->union()
             ->where('baz', '>=', 200)
             ->fetch();
-        $expected = ["(json_tree.fullkey='$.foo' AND json_tree.value = ?) UNION"];
-        $expected[] = "(json_tree.fullkey='$.bar' AND json_tree.value < ?)";
-        $expected[] = 'UNION SELECT * FROM (SELECT DISTINCT "test".ROWID, json_extract("test".json,\'$.__id\'), "test".json FROM "test", json_tree("test".json, \'$\') WHERE (json_tree.fullkey=\'$.baz\' AND json_tree.value >= ?))';
+        $expected = "( (json_extract(\"test\".json, '$.foo') = ?) OR (json_extract(\"test\".json, '$.bar') < ?) ) OR ( (json_extract(\"test\".json, '$.baz') >= ?) )";
         $this->assertSelectQueryContains($expected);
     }
 
@@ -232,5 +226,15 @@ class QueryBuilderTest extends TestCase
         $deleteBuilder->where('foo', 'NOT EMPTY')->delete();
         $expected = "DELETE FROM \"test\" WHERE ROWID IN (SELECT ROWID FROM (".$query."));";
         $this->assertEquals($expected, $this->queries['delete'][0]['query']);
+    }
+
+    public function testCountWrapsSelectResult()
+    {
+        $this->builder->where('foo', 'NOT EMPTY')->fetch();
+        $query = substr($this->queries['select'][0]['query'], 0, -1);
+        $countBuilder = new QueryBuilder($this->collection);
+        $countBuilder->where('foo', 'NOT EMPTY')->count();
+        $expected = "SELECT COUNT(*) AS c FROM (".$query.");";
+        $this->assertEquals($expected, $this->queries['select'][1]['query']);
     }
 }
