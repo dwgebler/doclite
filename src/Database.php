@@ -548,6 +548,7 @@ abstract class Database implements DatabaseInterface
         if ($this->readOnly) {
             throw new DatabaseException('Cannot optimize in read only mode', DatabaseException::ERR_READ_ONLY_MODE);
         }
+        $this->conn->clearQueryCache();
         $this->conn->exec('VACUUM;');
         $this->conn->exec('PRAGMA optimize;');
         $this->conn->exec('PRAGMA main.wal_checkpoint(TRUNCATE);');

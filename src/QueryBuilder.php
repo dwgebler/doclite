@@ -229,10 +229,11 @@ class QueryBuilder implements QueryBuilderInterface
         $selectQuery = rtrim($this->getSelectQuery(), ';');
         $query = 'SELECT COUNT(*) AS c FROM (' . $selectQuery . ');';
         $result = $this->collection->executeDqlQuery($query, $this->queryParameters, true);
-        if (is_array($result->current())) {
+        $first = $result->current();
+        if (isset($first['c'])) {
             return (int)$result->current()['c'];
         }
-        return 0;
+        return -1;
     }
 
     /**

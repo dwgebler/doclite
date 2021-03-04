@@ -136,6 +136,18 @@ class DatabaseConnection
     }
 
     /**
+     * Clear internal query cache.
+     * @return void
+     */
+    public function clearQueryCache(): void
+    {
+        foreach ($this->queryCache as $key => $query) {
+            $query->closeCursor();
+            unset($this->queryCache[$key]);
+        }
+    }
+
+    /**
      * Begin a transaction.
      * @return bool
      */
