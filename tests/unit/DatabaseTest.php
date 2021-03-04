@@ -327,7 +327,7 @@ class DatabaseTest extends TestCase
     public function testGetCacheExceptionOnInvalidTableName()
     {
         $this->expectException(DatabaseException::class);
-        $this->expectExceptionCode(DatabaseException::ERR_QUERY);
+        $this->expectExceptionCode(DatabaseException::ERR_INVALID_TABLE);
         iterator_to_array($this->db->getCache('Not&Valid', '', '', new \DateTimeImmutable()));
     }
 
@@ -439,6 +439,15 @@ class DatabaseTest extends TestCase
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_READ_ONLY_MODE);
         $this->readDb->optimize();
+    }
+
+    public function testOptimizeThrowsExceptionWhileInTransaction()
+    {
+        $this->conn->method('beginTransaction')->willReturn(true);
+        $this->db->beginTransaction('test');
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_IN_TRANSACTION);
+        $this->db->optimize();
     }
 }
 

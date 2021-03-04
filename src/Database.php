@@ -548,6 +548,12 @@ abstract class Database implements DatabaseInterface
         if ($this->readOnly) {
             throw new DatabaseException('Cannot optimize in read only mode', DatabaseException::ERR_READ_ONLY_MODE);
         }
+        if ($this->inTransaction) {
+            throw new DatabaseException(
+                sprintf('Cannot optimize when transaction in progress [%s]', $this->transactionTable),
+                DatabaseException::ERR_IN_TRANSACTION
+            );
+        }
         $this->conn->clearQueryCache();
         $this->conn->exec('VACUUM;');
         $this->conn->exec('PRAGMA optimize;');
@@ -865,7 +871,7 @@ abstract class Database implements DatabaseInterface
         if (!$this->isValidTableName($name)) {
             throw new DatabaseException(
                 sprintf('Invalid cache table name [%s]', $name),
-                DatabaseException::ERR_QUERY
+                DatabaseException::ERR_INVALID_TABLE
             );
         }
 

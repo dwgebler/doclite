@@ -30,6 +30,8 @@ class DatabaseException extends \Exception
     public const ERR_INVALID_DATA = 14;
     public const ERR_MAPPING_DATA = 15;
     public const ERR_IMPORT_DATA = 16;
+    public const ERR_IN_TRANSACTION = 17;
+    public const ERR_INVALID_TABLE = 18;
 
     private string $query;
     private array $params;
