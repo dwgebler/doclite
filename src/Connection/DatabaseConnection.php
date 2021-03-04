@@ -232,20 +232,41 @@ class DatabaseConnection
     }
 
     /**
-     * Execute a query and return the results as an associative array.
+     * Execute a query and return all results as an array.
      * @param string $query
      * @param mixed ...$params Query parameters
      * @return array
      * @throws DatabaseException
      */
-    public function query(string $query, ...$params): array
+    public function queryAll(string $query, ...$params): array
     {
         try {
             $stmt = $this->prepareQuery($query, $params);
             $stmt->execute();
-            $result = $stmt->fetchAll();
+            $results = $stmt->fetchAll();
             $stmt->closeCursor();
-            return $result;
+            return $results;
+        } catch (PDOException $e) {
+            throw new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+        }
+    }
+
+    /**
+     * Execute a query and return the results as a generator.
+     * @param string $query
+     * @param mixed ...$params Query parameters
+     * @return iterable
+     * @throws DatabaseException
+     */
+    public function query(string $query, ...$params): iterable
+    {
+        try {
+            $stmt = $this->prepareQuery($query, $params);
+            $stmt->execute();
+            foreach ($stmt as $row) {
+                yield $row;
+            }
+            $stmt->closeCursor();
         } catch (PDOException $e) {
             throw new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
         }

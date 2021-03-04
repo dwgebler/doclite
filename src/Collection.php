@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Gebler\Doclite;
 
 use DateTimeImmutable;
+use Exception;
 use Gebler\Doclite\Exception\DatabaseException;
 use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -70,7 +71,7 @@ class Collection implements QueryBuilderInterface
      * Constructor.
      * @param string $name
      * @param DatabaseInterface $db
-     * @throws Exception\DatabaseException
+     * @throws DatabaseException
      */
     public function __construct(string $name, DatabaseInterface $db)
     {
@@ -162,13 +163,13 @@ class Collection implements QueryBuilderInterface
     }
 
     /**
-     * Execute a DQL query and fetch results as documents or raw array.
+     * Execute a DQL query and fetch results as documents or raw data.
      * @param string $query
      * @param array $parameters
      * @param bool $fetchRaw Fetch raw array
      * @param ?string $class Custom class name
      * @param ?string $classIdProperty Custom class ID property
-     * @return array
+     * @return iterable
      * @throws DatabaseException
      */
     public function executeDqlQuery(
@@ -177,67 +178,85 @@ class Collection implements QueryBuilderInterface
         bool $fetchRaw = false,
         ?string $class = null,
         ?string $classIdProperty = null
-    ): array {
-        $documents = [];
+    ): iterable {
         $results = [];
+        $haveCache = true;
+
         if ($this->cachingEnabled) {
             $results = $this->getCache('dqlQuery', [$query, $parameters]);
         }
-        if (empty($results)) {
+
+        if (!$results->valid()) {
+            $haveCache = false;
             $results = $this->db->executeDqlQuery($query, $parameters);
-            if ($this->cachingEnabled) {
-                $this->setCache('dqlQuery', [$query, $parameters], $results);
-            }
         }
 
         if ($fetchRaw) {
-            return $results;
+            foreach ($results as $result) {
+                yield $result;
+            }
+        }
+
+        $writeCache = $this->cachingEnabled && !$haveCache;
+
+        if ($writeCache) {
+            $this->beginTransaction();
         }
 
         foreach ($results as $result) {
             $data = $result['json'];
             if ($class) {
-                $documents[] = $this->deserializeClass(
+                $document = $this->deserializeClass(
                     $data,
                     $class,
                     null,
                     $classIdProperty
                 );
             } else {
-                $documents[] = $this->createDocument($data);
+                $document = $this->createDocument($data);
             }
+            if ($writeCache) {
+                $this->setCache('dqlQuery', [$query, $parameters], $result);
+            }
+            yield $document;
         }
-        return $documents;
+
+        if ($writeCache) {
+            $this->commit();
+        }
     }
 
     /**
      * Retrieve an item from cache.
      * @param string $type
      * @param mixed $data
-     * @return ?array
+     * @return iterable
      * @throws DatabaseException
      */
-    private function getCache(string $type, $data): ?array
+    private function getCache(string $type, $data): iterable
     {
         $serialized = $this->serializer->serialize($data, 'json');
         $cacheKey = hash('sha256', $serialized);
         $expiryDate = $this->cacheLifetime > 0 ? new DateTimeImmutable() : null;
-        $result = $this->db->getCache($this->getCacheName(), $type, $cacheKey, $expiryDate);
-        if (!empty($result)) {
-            return $this->serializer->decode($result, 'json');
+        $results = $this->db->getCache($this->getCacheName(), $type, $cacheKey, $expiryDate);
+        foreach ($results as $result) {
+            if (is_string($result)) {
+                yield $this->serializer->decode($result, 'json');
+            } else {
+                yield $result;
+            }
         }
-        return null;
     }
 
     /**
      * Write an item to the cache.
      * @param string $type
-     * @param mixed $queryData ,
-     * @param array $resultData Array of scalar values
+     * @param mixed $queryData
+     * @param mixed $resultData
      * @return bool
      * @throws DatabaseException
      */
-    private function setCache(string $type, $queryData, array $resultData): bool
+    private function setCache(string $type, $queryData, $resultData): bool
     {
         if ($this->db->isReadOnly()) {
             throw new DatabaseException('Cannot set cache in read only mode', DatabaseException::ERR_READ_ONLY_MODE);
@@ -247,6 +266,7 @@ class Collection implements QueryBuilderInterface
         $serializedQuery = $this->serializer->serialize($queryData, 'json');
         $cacheData = $this->serializer->encode($resultData, 'json');
         $cacheKey = hash('sha256', $serializedQuery);
+        $dataKey = hash('sha256', $cacheData);
         $hasExpiry = $this->cacheLifetime > 0;
         if ($hasExpiry) {
             $expiryString = sprintf("now +%d seconds", $this->cacheLifetime);
@@ -257,6 +277,7 @@ class Collection implements QueryBuilderInterface
             $this->getCacheName(),
             $type,
             $cacheKey,
+            $dataKey,
             $cacheData,
             $expiryDate
         );
@@ -311,7 +332,7 @@ class Collection implements QueryBuilderInterface
                 $className,
                 'json'
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new DatabaseException(
                 sprintf('Unable to map document to class [%s]', $className),
                 DatabaseException::ERR_MAPPING_DATA,
@@ -482,38 +503,33 @@ class Collection implements QueryBuilderInterface
 
     /**
      * Find all documents in a collection. Results are returned
-     * ordered by internal ID.
+     * ordered by internal ID. Returns a generator.
      * @param string|null $class
      * @param string|null $classIdProperty
-     * @return array
+     * @return iterable
      * @throws DatabaseException
      */
-    public function findAll(?string $class = null, ?string $classIdProperty = null): array
+    public function findAll(?string $class = null, ?string $classIdProperty = null): iterable
     {
         $results = null;
-        $documents = [];
-        if ($this->cachingEnabled) {
-            $results = $this->getCache('findAll', $this->name);
-        }
-        if (empty($results)) {
-            $results = $this->db->findAll($this->name, []);
-            if ($this->cachingEnabled) {
-                $this->setCache('findAll', $this->name, $results);
-            }
-        }
+        $results = $this->db->findAll($this->name, []);
         foreach ($results as $result) {
-            if ($class) {
-                $documents[] = $this->deserializeClass(
-                    $result,
-                    $class,
-                    null,
-                    $classIdProperty
-                );
+            if (empty($result)) {
+                yield;
             } else {
-                $documents[] = $this->createDocument($result);
+                if ($class) {
+                    $document = $this->deserializeClass(
+                        $result,
+                        $class,
+                        null,
+                        $classIdProperty
+                    );
+                } else {
+                    $document = $this->createDocument($result);
+                }
+                yield $document;
             }
         }
-        return $documents;
     }
 
     /**
@@ -521,35 +537,53 @@ class Collection implements QueryBuilderInterface
      * @param array $criteria Key/value map of document fields
      * @param ?string $class
      * @param ?string $classIdProperty
-     * @return array
+     * @return iterable
      * @throws DatabaseException
      */
-    public function findAllBy(array $criteria, ?string $class = null, ?string $classIdProperty = null): array
+    public function findAllBy(array $criteria, ?string $class = null, ?string $classIdProperty = null): iterable
     {
-        $documents = [];
-        $results = null;
+        $results = [];
+        $haveResults = false;
+        $haveCache = true;
         if ($this->cachingEnabled) {
             $results = $this->getCache('findAllBy', $criteria);
-        }
-        if (empty($results)) {
-            $results = $this->db->findAll($this->name, $criteria);
-            if ($this->cachingEnabled) {
-                $this->setCache('findAllBy', $criteria, $results);
+            if (!empty($results->current())) {
+                $haveResults = true;
             }
+        }
+        if (!$haveResults) {
+            $haveCache = false;
+            $results = $this->db->findAll($this->name, $criteria);
+        }
+
+        $writeCache = $this->cachingEnabled && !$haveCache;
+
+        if ($writeCache) {
+            $this->beginTransaction();
         }
         foreach ($results as $result) {
-            if ($class) {
-                $documents[] = $this->deserializeClass(
-                    $result,
-                    $class,
-                    null,
-                    $classIdProperty
-                );
+            if (empty($result)) {
+                yield;
             } else {
-                $documents[] = $this->createDocument($result);
+                if ($class) {
+                    $document = $this->deserializeClass(
+                        $result,
+                        $class,
+                        null,
+                        $classIdProperty
+                    );
+                } else {
+                    $document = $this->createDocument($result);
+                }
+                if ($writeCache) {
+                    $this->setCache('findAllBy', $criteria, $result);
+                }
+                yield $document;
             }
         }
-        return $documents;
+        if ($writeCache) {
+            $this->commit();
+        }
     }
 
     /**
@@ -563,26 +597,29 @@ class Collection implements QueryBuilderInterface
     public function findOneBy(array $criteria, ?string $class = null, ?string $classIdProperty = null): ?object
     {
         $result = null;
+        $data = null;
         if ($this->cachingEnabled) {
             $result = $this->getCache('findOneBy', $criteria);
         }
-        if (empty($result)) {
-            $result = $this->db->find($this->name, $criteria);
+        if ($result !== null && $result->valid()) {
+            $data = $result->current();
+        } else {
+            $data = $this->db->find($this->name, $criteria);
             if ($this->cachingEnabled) {
-                $this->setCache('findOneBy', $criteria, [$result]);
+                $this->setCache('findOneBy', $criteria, $data);
             }
         }
 
-        if (!empty($result)) {
+        if (!empty($data)) {
             if ($class) {
                 return $this->deserializeClass(
-                    $result,
+                    $data,
                     $class,
                     null,
                     $classIdProperty
                 );
             }
-            return $this->createDocument($result);
+            return $this->createDocument($data);
         }
         return null;
     }

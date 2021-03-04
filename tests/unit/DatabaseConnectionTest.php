@@ -152,13 +152,13 @@ class DatabaseConnectionTest extends TestCase
         $this->pdo->setError(true);
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_QUERY);
-        $this->conn->query('SELECT * FROM foo');
+        iterator_to_array($this->conn->query('SELECT * FROM foo'));
     }
 
     public function testQueryReturnsResultsArray()
     {
         $this->stmt->setResult(['abc', 'def']);
-        $result = $this->conn->query('SELECT foo FROM bar');
+        $result = $this->conn->queryAll('SELECT foo FROM bar');
         $this->assertSame(['abc', 'def'], $result);
     }
 }

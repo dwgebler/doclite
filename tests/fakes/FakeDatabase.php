@@ -24,7 +24,7 @@ class FakeDatabase implements DatabaseInterface
     private $data = [];
     private $cache = [];
 
-    private $findResults= '';
+    private $findResults;
 
     /**
      * @inheritDoc
@@ -174,12 +174,20 @@ class FakeDatabase implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function findAll(string $table, array $criteria): array
+    public function findAll(string $table, array $criteria): iterable
     {
-        if (empty($criteria)) {
-            return $this->data[$table];
+        if (!empty($this->data[$table])) {
+            foreach ($this->data[$table] as $i) {
+                yield $i;
+            }
+        } else {
+            if (!is_array($this->findResults)) {
+                $this->findResults = [$this->findResults];
+            }
+            foreach ($this->findResults as $i) {
+                yield $i;
+            }
         }
-        return $this->findResults;
     }
 
     /**
@@ -187,7 +195,7 @@ class FakeDatabase implements DatabaseInterface
      */
     public function find(string $table, array $criteria): string
     {
-        return $this->findResults;
+        return (string)$this->findResults;
     }
 
     /**
@@ -230,21 +238,28 @@ class FakeDatabase implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function getCache(string $name, string $type, string $key, ?DateTimeImmutable $expiry): string
+    public function getCache(string $name, string $type, string $key, ?DateTimeImmutable $expiry): iterable
     {
+        $result = null;
         if (isset($this->cache[$name][$type][$key])) {
             if ($expiry < $this->cache[$name][$type][$key]['expiry']) {
-                return $this->cache[$name][$type][$key]['data'];
+                $result = $this->cache[$name][$type][$key]['data'];
             }
         }
-        return '';
+        yield $result;
     }
 
     /**
      * @inheritDoc
      */
-    public function setCache(string $name, string $type, string $key, string $cacheData, ?DateTimeImmutable $expiry): bool
-    {
+    public function setCache(
+        string $name,
+        string $type,
+        string $key,
+        string $dataKey,
+        string $cacheData,
+        ?DateTimeImmutable $expiry
+    ): bool {
         if (!isset($this->cache[$name])) {
             $this->cache[$name] = [];
         }
@@ -253,6 +268,7 @@ class FakeDatabase implements DatabaseInterface
         }
         $this->cache[$name][$type][$key] = [
             'data' => $cacheData,
+            'dataKey' => $dataKey,
             'expiry' => $expiry,
         ];
         return true;

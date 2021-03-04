@@ -231,7 +231,7 @@ class DatabaseTest extends TestCase
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_INVALID_COLLECTION);
-        $this->db->findAll('123NotValid', []);
+        iterator_to_array($this->db->findAll('123NotValid', []));
     }
 
     public function testFindAllReturnsJsonColumnOfResultRows()
@@ -241,14 +241,14 @@ class DatabaseTest extends TestCase
             ['column1' => 'whatever', 'json' => '{"__id": "67890"}', 'column2' => 'abcdef'],
         ]);
         $expected = ['{"__id": "12345"}', '{"__id": "67890"}'];
-        $actual = $this->db->findAll('foobar', []);
+        $actual = iterator_to_array($this->db->findAll('foobar', []));
         $this->assertSame($expected, $actual);
     }
 
     public function testFindAllReturnsEmptyArrayOnNoResults()
     {
         $this->conn->method('query')->willReturn([]);
-        $actual = $this->db->findAll('foobar', []);
+        $actual = iterator_to_array($this->db->findAll('foobar', []));
         $this->assertSame([], $actual);
     }
 
@@ -278,7 +278,7 @@ class DatabaseTest extends TestCase
 
     public function testTableExistsReturnsBooleanOfConnResultPresent()
     {
-        $this->conn->method('query')->willReturnOnConsecutiveCalls(
+        $this->conn->method('queryAll')->willReturnOnConsecutiveCalls(
             ['field' => 'value'], []);
         $this->assertTrue($this->db->tableExists('foo'));
         $this->assertFalse($this->db->tableExists('bar'));
@@ -319,40 +319,43 @@ class DatabaseTest extends TestCase
     public function testCreateCacheTableReturnsTrueOnConnResultEqualsZero()
     {
         $this->conn->method('exec')->willReturnOnConsecutiveCalls(
-            0, 0, 1, 1);
+            0, 0, 0, 1, 1, 1);
         $this->assertTrue($this->db->createCacheTable('foo'));
         $this->assertFalse($this->db->createCacheTable('bar'));
     }
 
-    public function testGetCacheReturnEmptyStringOnInvalidTableName()
+    public function testGetCacheExceptionOnInvalidTableName()
     {
-        $this->assertSame('', $this->db->getCache('Not&Valid', '', '', new \DateTimeImmutable()));
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_QUERY);
+        iterator_to_array($this->db->getCache('Not&Valid', '', '', new \DateTimeImmutable()));
     }
 
     public function testGetCacheReturnsConnResult()
     {
-        $this->conn->method('valueQuery')->wilLReturn('bar');
-        $this->assertSame('bar', $this->db->getCache('foobar', 'find', '12345', new \DateTimeImmutable()));
+        $this->conn->method('query')->willReturnCallback(fn() => yield ['data' => 'bar']);
+        $this->assertSame(['bar'], iterator_to_array($this->db->getCache('foobar', 'find', '12345', new
+        \DateTimeImmutable())));
     }
 
     public function testSetCacheExceptionOnReadOnlyMode()
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_READ_ONLY_MODE);
-        $this->readDb->setCache('foo', '', '', '', new \DateTimeImmutable());
+        $this->readDb->setCache('foo', '', '', '', '', new \DateTimeImmutable());
     }
 
     public function testSetCacheReturnsFalseOnInvalidCacheTableName()
     {
-        $this->assertFalse($this->db->setCache('CacheTable**Name', '', '', '', new \DateTimeImmutable()));
+        $this->assertFalse($this->db->setCache('CacheTable**Name', '', '', '', '', new \DateTimeImmutable()));
     }
 
     public function testSetCacheReturnsBooleanConnResultEqualsOne()
     {
         $this->conn->method('executePrepared')->willReturnOnConsecutiveCalls(
             1, 0);
-        $this->assertTrue($this->db->setCache('foo', '', '', '', new \DateTimeImmutable()));
-        $this->assertFalse($this->db->setCache('bar', '', '', '', new \DateTimeImmutable()));
+        $this->assertTrue($this->db->setCache('foo', '', '', '', '', new \DateTimeImmutable()));
+        $this->assertFalse($this->db->setCache('bar', '', '', '', '', new \DateTimeImmutable()));
     }
 
     public function testFlushTableExceptionOnReadOnlyMode()

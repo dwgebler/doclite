@@ -75,10 +75,10 @@ interface DatabaseInterface
      * Find all JSON records matching key=value criteria from specified table.
      * @param string $table
      * @param array $criteria
-     * @return array A list of JSON strings
+     * @return iterable A list of JSON strings
      * @throws DatabaseException
      */
-    public function findAll(string $table, array $criteria): array;
+    public function findAll(string $table, array $criteria): iterable;
     /**
      * Find a single JSON record by key=value criteria from the specified table.
      * @param string $table
@@ -122,15 +122,16 @@ interface DatabaseInterface
      * @param string $type
      * @param string $key
      * @param ?DateTimeImmutable $expiry
-     * @return string
+     * @return iterable
      * @throws DatabaseException
      */
-    public function getCache(string $name, string $type, string $key, ?DateTimeImmutable $expiry): string;
+    public function getCache(string $name, string $type, string $key, ?DateTimeImmutable $expiry): iterable;
     /**
      * Write records to a cache table.
      * @param string $name
      * @param string $type
      * @param string $key
+     * @param string $dataKey
      * @param string $cacheData
      * @param ?DateTimeImmutable $expiry
      * @return bool
@@ -140,6 +141,7 @@ interface DatabaseInterface
         string $name,
         string $type,
         string $key,
+        string $dataKey,
         string $cacheData,
         ?DateTimeImmutable $expiry
     ): bool;

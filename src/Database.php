@@ -383,7 +383,7 @@ abstract class Database implements DatabaseInterface
         }
 
         if (empty($collections)) {
-            $collections = array_column($this->conn->query("SELECT name FROM sqlite_master WHERE type ='table' " .
+            $collections = array_column($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type ='table' " .
                 "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_cache';"), 'name');
         }
 
@@ -550,6 +550,7 @@ abstract class Database implements DatabaseInterface
         }
         $this->conn->exec('VACUUM;');
         $this->conn->exec('PRAGMA optimize;');
+        $this->conn->exec('PRAGMA main.wal_checkpoint(TRUNCATE);');
     }
 
     /**
@@ -667,10 +668,10 @@ abstract class Database implements DatabaseInterface
      * Find all JSON records matching key=value criteria from specified table.
      * @param string $table
      * @param array $criteria
-     * @return array A list of JSON strings
+     * @return iterable A list of JSON strings
      * @throws DatabaseException
      */
-    public function findAll(string $table, array $criteria): array
+    public function findAll(string $table, array $criteria): iterable
     {
         if (count($criteria) === 0) {
             if (!$this->isValidTableName($table)) {
@@ -689,11 +690,9 @@ abstract class Database implements DatabaseInterface
         }
 
         $rows = $this->conn->query($query, ...$parameters);
-        if (!empty($rows)) {
-            return array_column($rows, 'json');
+        foreach ($rows as $row) {
+            yield $row['json'];
         }
-
-        return [];
     }
 
     /**
@@ -804,7 +803,7 @@ abstract class Database implements DatabaseInterface
      */
     public function tableExists(string $name): bool
     {
-        return !empty($this->conn->query("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", $name));
+        return !empty($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", $name));
     }
 
     /**
@@ -843,9 +842,11 @@ abstract class Database implements DatabaseInterface
         $success = $this->conn->exec(sprintf('CREATE TABLE IF NOT EXISTS "%s" (
             "type" TEXT NOT NULL, 
             "key" TEXT NOT NULL, 
+            "datakey" TEXT,
             "data" TEXT, 
             "expiry" TEXT)', $name)) === 0;
-        $this->conn->exec(sprintf('CREATE UNIQUE INDEX idx_%1$s_key ON "%1$s" ("type","key")', $name));
+        $this->conn->exec(sprintf('CREATE INDEX idx_%1$s_key ON "%1$s" ("type","key")', $name));
+        $this->conn->exec(sprintf('CREATE UNIQUE INDEX idx_%1$s_data_key ON "%1$s" ("type","key","datakey")', $name));
         return $success;
     }
 
@@ -855,13 +856,16 @@ abstract class Database implements DatabaseInterface
      * @param string $type
      * @param string $key
      * @param ?DateTimeImmutable $expiry
-     * @return string
+     * @return iterable
      * @throws DatabaseException
      */
-    public function getCache(string $name, string $type, string $key, ?DateTimeImmutable $expiry): string
+    public function getCache(string $name, string $type, string $key, ?DateTimeImmutable $expiry): iterable
     {
         if (!$this->isValidTableName($name)) {
-            return '';
+            throw new DatabaseException(
+                sprintf('Invalid cache table name [%s]', $name),
+                DatabaseException::ERR_QUERY
+            );
         }
 
         $parameters = [$type, $key];
@@ -871,7 +875,14 @@ abstract class Database implements DatabaseInterface
             $parameters[] = $expiry->format('Y-m-d H:i:s.v');
         }
 
-        return $this->conn->valueQuery($query, ...$parameters);
+        $rows = $this->conn->query($query, ...$parameters);
+        foreach ($rows as $row) {
+            if (isset($row['data'])) {
+                yield $row['data'];
+            } else {
+                yield;
+            }
+        }
     }
 
     /**
@@ -879,6 +890,7 @@ abstract class Database implements DatabaseInterface
      * @param string $name
      * @param string $type
      * @param string $key
+     * @param string $dataKey
      * @param string $cacheData
      * @param ?DateTimeImmutable $expiry
      * @return bool
@@ -888,6 +900,7 @@ abstract class Database implements DatabaseInterface
         string $name,
         string $type,
         string $key,
+        string $dataKey,
         string $cacheData,
         ?DateTimeImmutable $expiry
     ): bool {
@@ -904,9 +917,9 @@ abstract class Database implements DatabaseInterface
             $formattedExpiry = $expiry->format('Y-m-d H:i:s.v');
         }
 
-        $parameters = [$type, $key, $cacheData, $formattedExpiry];
-        $query = sprintf('REPLACE INTO "%s" ("type", "key", "data", "expiry") ' .
-            'VALUES (?, ?, ?, ?)', $name);
+        $parameters = [$type, $key, $dataKey, $cacheData, $formattedExpiry];
+        $query = sprintf('REPLACE INTO "%s" ("type", "key", "datakey", "data", "expiry") ' .
+            'VALUES (?, ?, ?, ?, ?)', $name);
         return $this->conn->executePrepared($query, ...$parameters) === 1;
     }
 
@@ -972,12 +985,15 @@ abstract class Database implements DatabaseInterface
      * Execute a DQL query and return the results as an array.
      * @param string $query
      * @param array $parameters
-     * @return array
+     * @return iterable
      * @throws DatabaseException
      */
-    public function executeDqlQuery(string $query, array $parameters): array
+    public function executeDqlQuery(string $query, array $parameters): iterable
     {
-        return $this->conn->query($query, ...$parameters);
+        $rows = $this->conn->query($query, ...$parameters);
+        foreach ($rows as $row) {
+            yield $row;
+        }
     }
 
     /**
