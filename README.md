@@ -308,6 +308,8 @@ The full list of error codes are as follows:
 | ERR_INVALID_DATA                 | Data does not match loaded JSON schema |
 | ERR_MAPPING_DATA                 | Unable to map document to class |
 | ERR_IMPORT_DATA                  | Error importing data |
+| ERR_IN_TRANSACTION               | Attempting locking operation while in a transaction |
+| ERR_INVALID_TABLE                | Attempting to access invalid table |
 
 ### Import and export data
 
