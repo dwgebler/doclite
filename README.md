@@ -317,7 +317,11 @@ DocLite can import data from and export data to JSON, YAML, XML and CSV files.
 For this purpose, the `Database` object provides two methods, `import()` and 
 `export()`.
 
-> :warning: It is recommended to use JSON for exports you intend to reload in 
+> :warning: Import or export operations on very large collections may exhaust
+> memory. This feature will (probably) be improved and made more efficient for
+> working with large data sets in future.
+> 
+> It is recommended to use JSON for exports you intend to reload in 
 > to a DocLite database. Support for other formats is experimental.
 
 #### Importing Data
