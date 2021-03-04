@@ -622,8 +622,9 @@ If a document which matches the criteria cannot be found, `null` is returned.
 
 #### Find all matching documents by values
 
-The function `findAllBy` works the same way as `findOneBy` but will return an array of documents 
-or empty array if no matches are found.
+The function `findAllBy` works the same way as `findOneBy` but will return a 
+generator which you can iterate over, or convert to array via PHP's 
+`iterator_to_array` function.
 
 ```php
 foreach($userCollection->findAllBy(['active' => true]) as $user) {
@@ -769,6 +770,9 @@ $nestedUsers = $users->where('active', '=', true)
                      ->fetch();
 ```
 </details>
+
+> :bulb: Like `findAllBy()`, the `fetch()` method returns a generator, not an 
+> array.
 
 > :bulb: The `fetch()` method on advanced queries can take a custom class name
 > and custom ID field as optional parameters, just like the `findOneBy`, 
