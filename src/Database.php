@@ -714,7 +714,7 @@ abstract class Database implements DatabaseInterface
         }
 
         if (
-                    count($criteria) !== count(array_filter($criteria, "is_scalar"))
+            count($criteria) !== count(array_filter($criteria, "is_scalar"))
         ) {
             throw new DatabaseException(
                 'Can only find() by scalar values',
@@ -733,8 +733,7 @@ abstract class Database implements DatabaseInterface
         }
 
         $criteriaFields = array_map(function ($key) {
-
-                return '$.' . $key;
+            return '$.' . $key;
         }, array_keys($criteria));
 
         $placeholders = implode(',', array_fill(

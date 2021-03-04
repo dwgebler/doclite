@@ -53,9 +53,9 @@ class Document
     private $jsonSchema = null;
 
     /**
-     * @var Serializer
+     * @var ?Serializer
      */
-    private Serializer $serializer;
+    private static ?Serializer $serializer = null;
 
     /**
      * Document constructor.
@@ -77,13 +77,15 @@ class Document
         $this->id = $data[Database::ID_FIELD];
         $this->data = $data;
         $this->collection = $collection;
-        $encoders = [new JsonEncoder()];
-        $normalizers = [
-            new DateTimeNormalizer(),
-            new ObjectNormalizer(null, null, null, new ReflectionExtractor()),
-            new ArrayDenormalizer(),
-        ];
-        $this->serializer = new Serializer($normalizers, $encoders);
+        if (!self::$serializer) {
+            $encoders = [new JsonEncoder()];
+            $normalizers = [
+                new DateTimeNormalizer(),
+                new ObjectNormalizer(null, null, null, new ReflectionExtractor()),
+                new ArrayDenormalizer(),
+            ];
+            self::$serializer = new Serializer($normalizers, $encoders);
+        }
     }
 
     /**
@@ -103,7 +105,7 @@ class Document
             $context = [AbstractNormalizer::OBJECT_TO_POPULATE => $value];
         }
         try {
-            $deserialized = $this->serializer->denormalize(
+            $deserialized = self::$serializer->denormalize(
                 $item,
                 $class,
                 'array',
