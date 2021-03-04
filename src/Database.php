@@ -875,6 +875,8 @@ abstract class Database implements DatabaseInterface
             );
         }
 
+        $this->conn->exec(sprintf('DELETE FROM "%s" WHERE expiry < datetime(\'now\')', $name));
+
         $parameters = [$type, $key];
         $query = sprintf('SELECT "data" FROM "%s" WHERE "type" = ? AND "key" = ?', $name);
         if ($expiry) {
