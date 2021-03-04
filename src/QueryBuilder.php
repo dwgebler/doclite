@@ -229,8 +229,8 @@ class QueryBuilder implements QueryBuilderInterface
         $selectQuery = rtrim($this->getSelectQuery(), ';');
         $query = 'SELECT COUNT(*) AS c FROM (' . $selectQuery . ');';
         $result = $this->collection->executeDqlQuery($query, $this->queryParameters, true);
-        if (isset($result[0]['c'])) {
-            return (int)$result[0]['c'];
+        if (is_array($result->current())) {
+            return (int)$result->current()['c'];
         }
         return 0;
     }
@@ -238,7 +238,7 @@ class QueryBuilder implements QueryBuilderInterface
     /**
      * @inheritDoc
      */
-    public function fetch(?string $className = null, ?string $idField = null): array
+    public function fetch(?string $className = null, ?string $idField = null): iterable
     {
         return $this->collection->executeDqlQuery(
             $this->getSelectQuery(),
@@ -247,6 +247,14 @@ class QueryBuilder implements QueryBuilderInterface
             $className,
             $idField
         );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function fetchArray(?string $className = null, ?string $idField = null): array
+    {
+        return iterator_to_array($this->fetch($className, $idField));
     }
 
     /**

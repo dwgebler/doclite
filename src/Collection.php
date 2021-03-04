@@ -851,6 +851,14 @@ class Collection implements QueryBuilderInterface
 
     /**
      * @inheritDoc
+     */
+    public function fetchArray(?string $className = null, ?string $idField = null): array
+    {
+        return (new QueryBuilder($this))->fetchArray($className, $idField);
+    }
+
+    /**
+     * @inheritDoc
      * @throws DatabaseException
      */
     public function delete(): int

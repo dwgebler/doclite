@@ -68,7 +68,15 @@ interface QueryBuilderInterface
      * @return array
      * @throws DatabaseException
      */
-    public function fetch(?string $className, ?string $idField): array;
+    public function fetch(?string $className, ?string $idField): iterable;
+    /**
+     * Fetch as an array.
+     * @param string|null $className Custom class name
+     * @param string|null $idField Custom class ID field
+     * @return array
+     * @throws DatabaseException
+     */
+    public function fetchArray(?string $className = null, ?string $idField = null): array;
     /**
      * Delete query results and return affected rows.
      * @return int
