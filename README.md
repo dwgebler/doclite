@@ -778,7 +778,8 @@ $nestedUsers = $users->where('active', '=', true)
 </details>
 
 > :bulb: Like `findAllBy()`, the `fetch()` method returns a generator, not an 
-> array.
+> array. If you would like all results at once, replace `fetch()` with 
+> `fetchArray()`.
 
 > :bulb: The `fetch()` method on advanced queries can take a custom class name
 > and custom ID field as optional parameters, just like the `findOneBy`, 
