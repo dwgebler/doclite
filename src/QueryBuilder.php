@@ -226,9 +226,7 @@ class QueryBuilder implements QueryBuilderInterface
      */
     public function count(): int
     {
-        $selectQuery = rtrim($this->getSelectQuery(), ';');
-        $query = 'SELECT COUNT(*) AS c FROM (' . $selectQuery . ');';
-        $result = $this->collection->executeDqlQuery($query, $this->queryParameters, true);
+        $result = $this->collection->executeDqlQuery($this->getCountQuery(), $this->queryParameters, true);
         $first = $result->current();
         if (isset($first['c'])) {
             return (int)$result->current()['c'];
@@ -354,12 +352,67 @@ class QueryBuilder implements QueryBuilderInterface
      */
     private function getDeleteQuery(): string
     {
-        $selectQuery = rtrim($this->getSelectQuery(), ';');
-        return sprintf(
-            "DELETE FROM \"%s\" WHERE ROWID IN (SELECT ROWID FROM (%s));",
-            $this->collection->getName(),
-            $selectQuery
+        $baseSelect = sprintf(
+            'DELETE FROM "%1$s"',
+            $this->collection->getName()
         );
+        $queryTemplate = $baseSelect . ' WHERE %s LIMIT %d;';
+        $wherePart = '';
+        $treePart = '';
+        $treeCount = 0;
+        $treeFields = [];
+        $limitPart = $this->queryConditions['limit'];
+
+        $whereGroups = ['where' => '', 'and' => ' AND ', 'or' => ' OR '];
+        foreach ($whereGroups as $group => $sqlWord) {
+            if (!empty($this->queryConditions[$group])) {
+                $wherePart .= $sqlWord . '(';
+                foreach ($this->queryConditions[$group] as $condition) {
+                    $this->forgeWhereClause($condition, $wherePart, $treePart, $treeCount, $treeFields);
+                }
+                $wherePart .= ')';
+            }
+        }
+
+        if (empty($wherePart)) {
+            $wherePart = '1';
+        }
+
+        return sprintf($queryTemplate, $wherePart, $limitPart);
+    }
+
+    /**
+     * Get a COUNT query string with placeholders.
+     * @return string
+     */
+    private function getCountQuery(): string
+    {
+        $baseSelect = sprintf(
+            'SELECT COUNT (DISTINCT "%1$s".ROWID) AS c FROM "%1$s"',
+            $this->collection->getName()
+        );
+        $queryTemplate = $baseSelect . ' WHERE %s;';
+        $wherePart = '';
+        $treePart = '';
+        $treeCount = 0;
+        $treeFields = [];
+
+        $whereGroups = ['where' => '', 'and' => ' AND ', 'or' => ' OR '];
+        foreach ($whereGroups as $group => $sqlWord) {
+            if (!empty($this->queryConditions[$group])) {
+                $wherePart .= $sqlWord . '(';
+                foreach ($this->queryConditions[$group] as $condition) {
+                    $this->forgeWhereClause($condition, $wherePart, $treePart, $treeCount, $treeFields);
+                }
+                $wherePart .= ')';
+            }
+        }
+
+        if (empty($wherePart)) {
+            $wherePart = '1';
+        }
+
+        return sprintf($queryTemplate, $wherePart);
     }
 
     /**

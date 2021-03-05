@@ -226,23 +226,20 @@ class QueryBuilderTest extends TestCase
         $this->assertSelectQueryContains($expected);
     }
 
-    public function testDeleteWrapsSelectResult()
+    public function testDeleteForgesWhereClause()
     {
-        $this->builder->where('foo', 'NOT EMPTY')->fetchArray();
-        $query = substr($this->queries['select'][0]['query'], 0, -1);
-        $deleteBuilder = new QueryBuilder($this->collection);
-        $deleteBuilder->where('foo', 'NOT EMPTY')->delete();
-        $expected = "DELETE FROM \"test\" WHERE ROWID IN (SELECT ROWID FROM (".$query."));";
+        $this->builder->where('foo', 'NOT EMPTY')->delete();
+        $expected = "DELETE FROM \"test\" WHERE ( (json_extract(\"test\".json, '$.foo') IS NOT NULL ) ) LIMIT -1;";
         $this->assertEquals($expected, $this->queries['delete'][0]['query']);
     }
 
-    public function testCountWrapsSelectResult()
+    public function testCountForgesWhereClause()
     {
         $this->builder->where('foo', 'NOT EMPTY')->fetchArray();
         $query = substr($this->queries['select'][0]['query'], 0, -1);
         $countBuilder = new QueryBuilder($this->collection);
         $countBuilder->where('foo', 'NOT EMPTY')->count();
-        $expected = "SELECT COUNT(*) AS c FROM (".$query.");";
+        $expected = "SELECT COUNT (DISTINCT \"test\".ROWID) AS c FROM \"test\" WHERE ( (json_extract(\"test\".json, '$.foo') IS NOT NULL ) );";
         $this->assertEquals($expected, $this->queries['select'][1]['query']);
     }
 }
