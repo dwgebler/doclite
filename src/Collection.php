@@ -181,12 +181,16 @@ class Collection implements QueryBuilderInterface
     ): iterable {
         $results = [];
         $haveCache = true;
+        $haveResults = false;
 
         if ($this->cachingEnabled) {
             $results = $this->getCache('dqlQuery', [$query, $parameters]);
+            if (!empty($results->current())) {
+                $haveResults = true;
+            }
         }
 
-        if (!$results->valid()) {
+        if (!$haveResults) {
             $haveCache = false;
             $results = $this->db->executeDqlQuery($query, $parameters);
         }
