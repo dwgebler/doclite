@@ -139,7 +139,7 @@ abstract class AbstractDatabaseTest extends TestCase
         $expiry = new \DateTimeImmutable('now +10 seconds');
         $this->db->createCacheTable('test_cache');
         $this->assertTrue($this->db->setCache(
-            'test_cache', 'find', '12345', '{"foo":"bar"}', $expiry));
+            'test_cache', 'find', '12345', '12345', '{"foo":"bar"}', $expiry));
     }
 
     public function testImport()
@@ -148,7 +148,7 @@ abstract class AbstractDatabaseTest extends TestCase
         $dataFile = __DIR__.'/../data/user.json';
         $data = json_decode(file_get_contents($dataFile), true);
         $this->db->import($dataDir, 'json', Database::MODE_IMPORT_COLLECTIONS);
-        $actual = $this->db->findAll('user', []);
+        $actual = iterator_to_array($this->db->findAll('user', []));
         $this->assertEquals(
             [$data[0], $data[1]],
             [json_decode($actual[0],true), json_decode($actual[1],true)]
@@ -193,7 +193,7 @@ abstract class AbstractDatabaseTest extends TestCase
             [
                 ['json' => $json],
             ],
-            $this->db->executeDqlQuery($query, [1])
+            iterator_to_array($this->db->executeDqlQuery($query, [1]))
         );
     }
 
@@ -202,11 +202,11 @@ abstract class AbstractDatabaseTest extends TestCase
         $expiry = new \DateTimeImmutable('now +10 seconds');
         $this->db->createCacheTable('test_cache');
         $this->db->setCache(
-            'test_cache', 'find', '12345', '{"foo":"bar"}', $expiry);
+            'test_cache', 'find', '12345', '12345','{"foo":"bar"}', $expiry);
         $this->assertEquals(
-            '{"foo":"bar"}',
-            $this->db->getCache(
-                'test_cache', 'find', '12345', new \DateTimeImmutable())
+            ['{"foo":"bar"}'],
+            iterator_to_array($this->db->getCache(
+                'test_cache', 'find', '12345', new \DateTimeImmutable()))
         );
     }
 
@@ -235,7 +235,7 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->db->insert('test', '{"foo":"bar"}');
         $this->db->insert('test', '{"bar":"baz"}');
         $this->db->flushTable('test');
-        $this->assertEmpty($this->db->findAll('test', []));
+        $this->assertEmpty(iterator_to_array($this->db->findAll('test', [])));
     }
 
     public function testFindAll()
@@ -245,9 +245,9 @@ abstract class AbstractDatabaseTest extends TestCase
         $expectedAll = ['{"foo":"bar"}', '{"bar":"baz"}'];
         $this->assertEquals(
             ['{"bar":"baz"}'],
-            $this->db->findAll('test', ['bar' => 'baz'])
+            iterator_to_array($this->db->findAll('test', ['bar' => 'baz']))
         );
-        $this->assertEquals($expectedAll, $this->db->findAll('test', []));
+        $this->assertEquals($expectedAll, iterator_to_array($this->db->findAll('test', [])));
     }
 
     public function testIsReadOnly()
