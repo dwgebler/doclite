@@ -268,6 +268,35 @@ class QueryBuilder implements QueryBuilderInterface
     }
 
     /**
+     * Get the WHERE portion of a query.
+     * @param string|null $treePart
+     * @return string
+     */
+    private function getWhereCondition(?string &$treePart = null): string
+    {
+        $wherePart = '';
+        $treePart = $treePart ?? '';
+        $treeCount = 0;
+        $treeFields = [];
+
+        $whereGroups = ['where' => '', 'and' => ' AND ', 'or' => ' OR '];
+        foreach ($whereGroups as $group => $sqlWord) {
+            if (!empty($this->queryConditions[$group])) {
+                $wherePart .= $sqlWord . '(';
+                foreach ($this->queryConditions[$group] as $condition) {
+                    $this->forgeWhereClause($condition, $wherePart, $treePart, $treeCount, $treeFields);
+                }
+                $wherePart .= ')';
+            }
+        }
+
+        if (empty($wherePart)) {
+            $wherePart = '1';
+        }
+        return $wherePart;
+    }
+
+    /**
      * Forge the ORDER BY clause of a SELECT statement.
      *
      * @return string The order by conditions.
@@ -357,26 +386,8 @@ class QueryBuilder implements QueryBuilderInterface
             $this->collection->getName()
         );
         $queryTemplate = $baseSelect . ' WHERE %s LIMIT %d;';
-        $wherePart = '';
-        $treePart = '';
-        $treeCount = 0;
-        $treeFields = [];
+        $wherePart = $this->getWhereCondition();
         $limitPart = $this->queryConditions['limit'];
-
-        $whereGroups = ['where' => '', 'and' => ' AND ', 'or' => ' OR '];
-        foreach ($whereGroups as $group => $sqlWord) {
-            if (!empty($this->queryConditions[$group])) {
-                $wherePart .= $sqlWord . '(';
-                foreach ($this->queryConditions[$group] as $condition) {
-                    $this->forgeWhereClause($condition, $wherePart, $treePart, $treeCount, $treeFields);
-                }
-                $wherePart .= ')';
-            }
-        }
-
-        if (empty($wherePart)) {
-            $wherePart = '1';
-        }
 
         return sprintf($queryTemplate, $wherePart, $limitPart);
     }
@@ -392,25 +403,7 @@ class QueryBuilder implements QueryBuilderInterface
             $this->collection->getName()
         );
         $queryTemplate = $baseSelect . ' WHERE %s;';
-        $wherePart = '';
-        $treePart = '';
-        $treeCount = 0;
-        $treeFields = [];
-
-        $whereGroups = ['where' => '', 'and' => ' AND ', 'or' => ' OR '];
-        foreach ($whereGroups as $group => $sqlWord) {
-            if (!empty($this->queryConditions[$group])) {
-                $wherePart .= $sqlWord . '(';
-                foreach ($this->queryConditions[$group] as $condition) {
-                    $this->forgeWhereClause($condition, $wherePart, $treePart, $treeCount, $treeFields);
-                }
-                $wherePart .= ')';
-            }
-        }
-
-        if (empty($wherePart)) {
-            $wherePart = '1';
-        }
+        $wherePart = $this->getWhereCondition();
 
         return sprintf($queryTemplate, $wherePart);
     }
@@ -423,27 +416,10 @@ class QueryBuilder implements QueryBuilderInterface
     {
         $baseSelect = sprintf('SELECT DISTINCT "%1$s".ROWID, "%1$s".json FROM "%1$s"', $this->collection->getName());
         $queryTemplate = $baseSelect . '%s WHERE %s ORDER BY %s LIMIT %d OFFSET %d;';
-        $wherePart = '';
         $treePart = '';
-        $treeCount = 0;
-        $treeFields = [];
+        $wherePart = $this->getWhereCondition($treePart);
         $limitPart = $this->queryConditions['limit'];
         $offsetPart = $this->queryConditions['offset'];
-
-        $whereGroups = ['where' => '', 'and' => ' AND ', 'or' => ' OR '];
-        foreach ($whereGroups as $group => $sqlWord) {
-            if (!empty($this->queryConditions[$group])) {
-                $wherePart .= $sqlWord . '(';
-                foreach ($this->queryConditions[$group] as $condition) {
-                    $this->forgeWhereClause($condition, $wherePart, $treePart, $treeCount, $treeFields);
-                }
-                $wherePart .= ')';
-            }
-        }
-
-        if (empty($wherePart)) {
-            $wherePart = '1';
-        }
 
         $orderPart = $this->forgeOrderClause();
         if (empty($orderPart)) {

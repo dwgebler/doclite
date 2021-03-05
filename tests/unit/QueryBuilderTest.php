@@ -123,6 +123,13 @@ class QueryBuilderTest extends TestCase
         $this->assertSelectQueryContains($expected, ['%bar%']);
     }
 
+    public function testWhereJsonTree()
+    {
+        $this->builder->where('foo.bar[]', 'CONTAINS', 'baz')->fetchArray();
+        $expected = "json_tree(\"test\".json, '$.foo.bar') AS t1 WHERE ( (t1.value LIKE ?) )";
+        $this->assertSelectQueryContains($expected, ['%baz%']);
+    }
+
     public function testWhereStartsWith()
     {
         $this->builder->where('foo', 'STARTS', 'bar')->fetchArray();
