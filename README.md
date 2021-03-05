@@ -72,6 +72,8 @@ learn, install and start using in minutes.
 
 DocLite lends itself well to a variety of use cases, including but not limited to:
 
+- Agile development and rapid prototyping while your requirements are evolving.  
+  
 - Powerful, self-contained NoSQL database for small to medium websites or 
   applications, such as blogs, business website, CMS, CRM or forums.
   

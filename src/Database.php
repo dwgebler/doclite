@@ -58,7 +58,7 @@ abstract class Database implements DatabaseInterface
      * Version number.
      * @var string
      */
-    private const VERSION = '1.0.1';
+    private const VERSION = '1.0.2';
     /**
      * DB connection
      * @var DatabaseConnection
