@@ -385,11 +385,12 @@ class QueryBuilder implements QueryBuilderInterface
             'DELETE FROM "%1$s"',
             $this->collection->getName()
         );
-        $queryTemplate = $baseSelect . ' WHERE %s LIMIT %d;';
-        $wherePart = $this->getWhereCondition();
+        $queryTemplate = $baseSelect . '%s WHERE %s LIMIT %d;';
+        $treePart = '';
+        $wherePart = $this->getWhereCondition($treePart);
         $limitPart = $this->queryConditions['limit'];
 
-        return sprintf($queryTemplate, $wherePart, $limitPart);
+        return sprintf($queryTemplate, $treePart, $wherePart, $limitPart);
     }
 
     /**
@@ -402,10 +403,11 @@ class QueryBuilder implements QueryBuilderInterface
             'SELECT COUNT (DISTINCT "%1$s".ROWID) AS c FROM "%1$s"',
             $this->collection->getName()
         );
-        $queryTemplate = $baseSelect . ' WHERE %s;';
-        $wherePart = $this->getWhereCondition();
+        $queryTemplate = $baseSelect . '%s WHERE %s;';
+        $treePart = '';
+        $wherePart = $this->getWhereCondition($treePart);
 
-        return sprintf($queryTemplate, $wherePart);
+        return sprintf($queryTemplate, $treePart, $wherePart);
     }
 
     /**
