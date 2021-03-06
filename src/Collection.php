@@ -726,8 +726,12 @@ class Collection implements QueryBuilderInterface
      */
     public function get(?string $id = null, ?string $class = null, ?string $classIdProperty = null): object
     {
+        $result = null;
+        $lookup = true;
+
         if (empty($id)) {
             $id = $this->getUuid();
+            $lookup = false;
         }
 
         if ($class && !class_exists($class)) {
@@ -737,7 +741,11 @@ class Collection implements QueryBuilderInterface
             );
         }
 
-        if (empty($result = $this->db->getById($this->name, $id))) {
+        if ($lookup) {
+            $result = $this->db->getById($this->name, $id);
+        }
+
+        if (empty($result)) {
             if ($this->db->isReadOnly()) {
                 throw new DatabaseException(
                     'Cannot create document in read only mode',
