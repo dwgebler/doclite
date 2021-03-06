@@ -100,7 +100,7 @@ as the underlying SQLite engine it is built on, but where you desire a NoSQL sol
 
 - PHP 7.4 or above
 
-- With PDO SQLite enabled, built against libsqlite ≥ 3.7.0 with JSON1 extension.
+- With PDO SQLite enabled, built against libsqlite ≥ 3.18.0 with JSON1 extension.
 
 (on most systems, if you're running PHP 7.4 you probably already meet the second 
 requirement)
