@@ -1,6 +1,6 @@
 {
     "name": "dwgebler/doclite",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "A powerful NoSQL data store built on top of SQLite",
     "type": "library",
     "require": {
