@@ -1,1 +1,3 @@
 theme: jekyll-theme-slate
+title: DocLite - PHP NoSQL database
+description: A powerful PHP NoSQL document store built on top of SQLite.
