@@ -142,6 +142,18 @@ abstract class AbstractDatabaseTest extends TestCase
             'test_cache', 'find', '12345', '12345', '{"foo":"bar"}', $expiry));
     }
 
+    public function testCacheAutoPruneRemovesExpiredCaches()
+    {
+        $this->db->enableCacheAutoPrune();
+        $expiryPast = new \DateTimeImmutable('now -10 seconds');
+        $this->db->createCacheTable('test_cache');
+        $this->db->setCache('test_cache', 'find', '12345', '12345', '{"foo":"bar"}', $expiryPast);
+        $expiryLater = new \DateTimeImmutable('now +10 seconds');
+        $this->db->setCache('test_cache', 'find', '12345', '23456', '{"bar":"baz"}', $expiryLater);
+        $cache = iterator_to_array($this->db->getCache('test_cache','find', '12345', null));
+        $this->assertEquals(['{"bar":"baz"}'], $cache);
+    }
+
     public function testImport()
     {
         $dataDir = __DIR__.'/../data';

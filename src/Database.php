@@ -71,6 +71,10 @@ abstract class Database implements DatabaseInterface
     /**
      * @var bool
      */
+    protected bool $cacheAutoPrune = false;
+    /**
+     * @var bool
+     */
     protected bool $inTransaction = false;
     /**
      * @var ?string
@@ -80,6 +84,7 @@ abstract class Database implements DatabaseInterface
      * @var bool
      */
     protected bool $readOnly = false;
+
     /**
      * Get product version
      * @return string
@@ -96,6 +101,35 @@ abstract class Database implements DatabaseInterface
     public function isReadOnly(): bool
     {
         return $this->readOnly;
+    }
+
+    /**
+     * Enable cache auto pruning.
+     * @return self
+     */
+    public function enableCacheAutoPrune(): self
+    {
+        return $this->setCacheAutoPrune(true);
+    }
+
+    /**
+     * Set cache auto pruning
+     * @param bool
+     * @return self
+     */
+    public function setCacheAutoPrune(bool $auto): self
+    {
+        $this->cacheAutoPrune = $auto;
+        return $this;
+    }
+
+    /**
+     * Get cache auto prune setting
+     * @return bool
+     */
+    public function getCacheAutoPrune(): bool
+    {
+        return $this->cacheAutoPrune;
     }
 
     /**
@@ -875,7 +909,9 @@ abstract class Database implements DatabaseInterface
             );
         }
 
-        $this->conn->exec(sprintf('DELETE FROM "%s" WHERE expiry < datetime(\'now\')', $name));
+        if ($this->cacheAutoPrune) {
+            $this->conn->exec(sprintf('DELETE FROM "%s" WHERE expiry < datetime(\'now\')', $name));
+        }
 
         $parameters = [$type, $key];
         $query = sprintf('SELECT "data" FROM "%s" WHERE "type" = ? AND "key" = ?', $name);

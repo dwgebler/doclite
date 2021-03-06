@@ -818,9 +818,10 @@ DocLite can cache the results of queries to speed up retrieval of complex result
 For very simple queries, however, this may provide no benefit or even incur a small 
 performance penalty, so you should only turn it on if you need to.
 
-To turn on caching for a collection, call the `enableCache()` method.
+To turn on caching for a collection, call the collection object's 
+`enableCache()` method.
 
-Likewise, you can disable caching with `disableCache()`.
+Likewise, you can disable caching by calling `disableCache()`.
 
 Cache results are valid for the cache lifetime, which defaults to 60 seconds. You can 
 change the cache validity period by calling `setCacheLifetime($seconds)`. A cache 
@@ -837,6 +838,14 @@ $userCollection->setCacheLifetime(3600);
 $userCollection->disableCache();
 
 $userCollection->clearCache();
+```
+
+Finally, the `Database` object can be set to automatically prune expired 
+entries whenever the cache is queried. This behaviour is disabled by default; 
+to enable auto-pruning, call `enableCacheAutoPrune()` on the database object.
+
+```php
+$db->enableCacheAutoPrune();
 ```
 
 > :bulb: For complex queries, the cache is very fast. If you are running a large 
