@@ -47,6 +47,7 @@ A powerful PHP NoSQL document store built on top of SQLite.
   - [Deleting a document](#deleting-a-document)
   - [Document validation](#document-validation)
 - [Other info](#other-info)
+  - [Symfony integration](#symfony-integration)
   - [Licensing](#licensing)
   - [Bugs, issues](#bugs-issues)
   - [Contact the author](#contact-the-author)
@@ -1280,6 +1281,29 @@ $user->removeJsonSchema();
 ```
 
 ## Other info
+
+### Symfony integration
+
+Although there is not a specific integration with the Symfony framework, it's 
+trivial to inject Doclite as a service in to any Symfony application. Simply 
+install Doclite via Composer as an app dependency, then modify your 
+`services.yaml` as per the following example.
+
+```yaml
+    app.filedatabase:
+        class: Gebler\Doclite\FileDatabase
+        arguments:
+            $path: "../var/data/app.db"
+            $readOnly: false
+    app.memorydatabase:
+        class: Gebler\Doclite\MemoryDatabase
+
+    Gebler\Doclite\DatabaseInterface: '@app.filedatabase'
+    Gebler\Doclite\DatabaseInterface $memoryDb: '@app.memorydatabase'
+```
+
+You can now typehint a `DatabaseInterface` like any other service, using the 
+alias `$memoryDb` as the parameter name if you'd like a `MemoryDatabase`.
 
 ### Licensing
 
