@@ -1285,8 +1285,8 @@ $user->removeJsonSchema();
 ### Symfony integration
 
 Although there is not a specific integration with the Symfony framework, it's 
-trivial to inject Doclite as a service in to any Symfony application. Simply 
-install Doclite via Composer as an app dependency, then modify your 
+trivial to inject DocLite as a service in to any Symfony application. Simply 
+install DocLite via Composer as an app dependency, then modify your 
 `services.yaml` as per the following example.
 
 ```yaml
