@@ -58,7 +58,7 @@ abstract class Database implements DatabaseInterface
      * Version number.
      * @var string
      */
-    private const VERSION = '1.0.3';
+    private const VERSION = '1.1.0';
     /**
      * DB connection
      * @var DatabaseConnection
@@ -844,6 +844,12 @@ abstract class Database implements DatabaseInterface
      */
     public function tableExists(string $name): bool
     {
+        if (!$this->isValidTableName($name)) {
+            throw new DatabaseException(
+                sprintf('Invalid collection name [%s]', $name),
+                DatabaseException::ERR_INVALID_TABLE
+            );
+        }
         return !empty($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type='table' AND name=?;", $name));
     }
 

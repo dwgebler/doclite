@@ -1,6 +1,7 @@
 {
     "name": "dwgebler/doclite",
     "version": "1.0.3",
+    "keywords": ["nosql","database","document","json","file","sqlite","store"],
     "description": "A powerful NoSQL data store built on top of SQLite",
     "type": "library",
     "require": {
@@ -26,7 +27,7 @@
     "autoload-dev": {
         "psr-4": { "Gebler\\Doclite\\Tests\\": "tests/" }
     },
-    "license": "GPL-3.0-only",
+    "license": ["GPL-3.0-only", "proprietary"],
     "authors": [
         {
             "name": "David Gebler"

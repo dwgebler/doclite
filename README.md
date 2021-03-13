@@ -36,7 +36,7 @@ A powerful PHP NoSQL document store built on top of SQLite.
     - [Query operators](#query-operators)
   - [Caching results](#caching-results)
   - [Index a collection](#index-a-collection)
-    - [Delete a collection](#delete-a-collection)
+  - [Delete a collection](#delete-a-collection)
   - [Collection transactions](#collection-transactions)
 - [Documents](#documents)
   - [About Documents](#about-documents)
@@ -880,7 +880,7 @@ in any other SQLite database, the only difference being they are created
 on document fields rather than a table column. Poorly chosen indexes may 
 provide no benefit or even slow down queries.
 
-#### Delete a collection
+### Delete a collection
 
 To delete all documents in a collection entirely, call the `deleteAll()` method.
 
