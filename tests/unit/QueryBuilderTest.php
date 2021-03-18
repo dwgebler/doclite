@@ -32,7 +32,7 @@ class QueryBuilderTest extends TestCase
         return 1;
     }
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->queries = [];
         $this->collection = $this->createMock(Collection::class);
@@ -248,5 +248,16 @@ class QueryBuilderTest extends TestCase
         $countBuilder->where('foo', 'NOT EMPTY')->count();
         $expected = "SELECT COUNT (DISTINCT \"test\".ROWID) AS c FROM \"test\" WHERE ( (json_extract(\"test\".json, '$.foo') IS NOT NULL ) );";
         $this->assertEquals($expected, $this->queries['select'][1]['query']);
+    }
+
+    public function testQueryExecutionResetsParameters()
+    {
+        $query = $this->builder->where('foo', '=', 'bar');
+        $query->fetchArray();
+        $query->count();
+        $query->delete();
+        $this->assertEquals(['bar'], $this->queries['select'][0]['params']);
+        $this->assertEquals(['bar'], $this->queries['select'][1]['params']);
+        $this->assertEquals(['bar'], $this->queries['delete'][0]['params']);
     }
 }

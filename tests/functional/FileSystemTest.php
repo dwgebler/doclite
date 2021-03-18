@@ -10,7 +10,7 @@ use Gebler\Doclite\Tests\unit\AbstractFileSystemTest;
 
 class FileSystemTest extends AbstractFileSystemTest
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->fs = new FileSystem();
         $tempDir = sys_get_temp_dir();

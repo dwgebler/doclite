@@ -13,7 +13,7 @@ class CollectionTest extends TestCase
     private $db;
     private $collection;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->db = new FakeDatabase();
         $this->collection = new Collection('test', $this->db);
@@ -224,5 +224,17 @@ class CollectionTest extends TestCase
     {
         $this->collection->beginTransaction();
         $this->assertTrue($this->collection->commit());
+    }
+
+    public function testInternalIdFieldInsertedToDocumentOnSave()
+    {
+        $person = new Person();
+        $person->setId("12345");
+        $person->setName("John Smith");
+        $person->setCustomIdField("Some value");
+        $this->collection->save($person);
+        $this->db->setResults($this->db->getById("test", "12345"));
+        $samePerson = $this->collection->findOneBy(["id" => "12345"], Person::class);
+        $this->assertEquals($person, $samePerson);
     }
 }

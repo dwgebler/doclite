@@ -11,7 +11,7 @@ abstract class AbstractDatabaseTest extends TestCase
 {
     protected Database $db;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->db->createTable('test');
     }

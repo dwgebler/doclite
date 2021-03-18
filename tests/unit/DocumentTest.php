@@ -15,7 +15,7 @@ class DocumentTest extends TestCase
     private $collection;
     private $document;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->db = new FakeDatabase();
         $this->collection = new Collection('test', $this->db);

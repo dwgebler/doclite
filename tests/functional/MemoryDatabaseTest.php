@@ -6,7 +6,7 @@ use Gebler\Doclite\MemoryDatabase;
 
 class MemoryDatabaseTest extends AbstractDatabaseTest
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->db = new MemoryDatabase();
         parent::setup();

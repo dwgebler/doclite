@@ -17,7 +17,7 @@ class DatabaseTest extends TestCase
     private $db;
     private $readDb;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->conn = $this->createMock(DatabaseConnection::class);
         $this->fs = new FakeFileSystem();

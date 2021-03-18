@@ -381,6 +381,7 @@ class QueryBuilder implements QueryBuilderInterface
      */
     private function getDeleteQuery(): string
     {
+        $this->queryParameters = [];
         $baseSelect = sprintf(
             'DELETE FROM "%1$s"',
             $this->collection->getName()
@@ -399,6 +400,7 @@ class QueryBuilder implements QueryBuilderInterface
      */
     private function getCountQuery(): string
     {
+        $this->queryParameters = [];
         $baseSelect = sprintf(
             'SELECT COUNT (DISTINCT "%1$s".ROWID) AS c FROM "%1$s"',
             $this->collection->getName()
@@ -416,6 +418,7 @@ class QueryBuilder implements QueryBuilderInterface
      */
     private function getSelectQuery(): string
     {
+        $this->queryParameters = [];
         $baseSelect = sprintf('SELECT DISTINCT "%1$s".ROWID, "%1$s".json FROM "%1$s"', $this->collection->getName());
         $queryTemplate = $baseSelect . '%s WHERE %s ORDER BY %s LIMIT %d OFFSET %d;';
         $treePart = '';

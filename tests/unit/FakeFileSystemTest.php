@@ -8,7 +8,7 @@ use Gebler\Doclite\FileSystem\FileSystemInterface;
 
 class FakeFileSystemTest extends AbstractFileSystemTest
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->fs = new FakeFileSystem();
         $this->tempFile = '/foo/bar';

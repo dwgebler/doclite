@@ -701,6 +701,13 @@ class Collection implements QueryBuilderInterface
                 'json',
                 [AbstractNormalizer::IGNORED_ATTRIBUTES => $ignoreFields]
             );
+            // Set the internal ID field if not present. This is not as hacky as it looks;
+            // it's actually more efficient than decoding the whole blob to check for a key.
+            if (strpos($json, '{') === 0) {
+                if (strpos($json, '"' . Database::ID_FIELD . '":') === false) {
+                    $json = '{"' . Database::ID_FIELD . '":"' . $id . '",' . substr($json, 1);
+                }
+            }
         }
         return $this->db->replace($this->name, $id, $json);
     }
