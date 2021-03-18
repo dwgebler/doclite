@@ -15,7 +15,7 @@ class DatabaseConnectionTest extends TestCase
     private $stmt;
     private $conn;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         if (\PHP_VERSION_ID < 80000) {
             $this->markTestSkipped('These tests only run on PHP 8 due to fake PDO implementation');

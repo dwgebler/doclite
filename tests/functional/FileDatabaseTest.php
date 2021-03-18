@@ -9,7 +9,7 @@ class FileDatabaseTest extends AbstractDatabaseTest
     protected string $tempFile;
     private string $tempDir;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->tempDir = sys_get_temp_dir();
         $tempName = uniqid("DOCLITE_FS_");
@@ -18,7 +18,7 @@ class FileDatabaseTest extends AbstractDatabaseTest
         parent::setup();
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         @chmod($this->tempFile, 0777);
         @unlink($this->tempFile);

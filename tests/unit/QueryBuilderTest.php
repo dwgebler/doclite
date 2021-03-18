@@ -32,7 +32,7 @@ class QueryBuilderTest extends TestCase
         return 1;
     }
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->queries = [];
         $this->collection = $this->createMock(Collection::class);

@@ -13,7 +13,7 @@ class CollectionTest extends TestCase
     private $db;
     private $collection;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->db = new FakeDatabase();
         $this->collection = new Collection('test', $this->db);
