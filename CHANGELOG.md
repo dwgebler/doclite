@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.4 Unreleased (master)
+## 1.0.4
  
   - Fixed bug where QueryBuilder queries are effectively terminated after the 
     first use, due to bound parameters not being reset.
