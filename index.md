@@ -1,5 +1,5 @@
 # DocLite
-A powerful PHP NoSQL document store built on top of SQLite.
+A powerful PHP NoSQL database and document store built on top of SQLite.
 
 [![Build Status](https://travis-ci.com/dwgebler/doclite.svg?token=uj4HfXm5wqJXVuPAd984&branch=master)](https://travis-ci.com/dwgebler/doclite)
 
@@ -11,7 +11,7 @@ A powerful PHP NoSQL document store built on top of SQLite.
   
 ## About DocLite
 
-DocLite is a powerful NoSQL document store for PHP built on top of SQLite. It uses the 
+DocLite is a powerful NoSQL document store for PHP built on top of SQLite, providing a robust, fast and ACID compliant alternative to flat-file databases like SleekDB. It uses the 
 PHP PDO SQLite library to access a SQLite database and automatically manage 
 documents organized in to named collections, which are stored as JSON.
 
