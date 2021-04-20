@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5
+
+  - No functional changes in this release, just changed the licence terms to the more 
+    permissive MIT licence.
+
 ## 1.0.4
  
   - Fixed bug where QueryBuilder queries are effectively terminated after the 
