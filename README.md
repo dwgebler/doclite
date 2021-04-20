@@ -1307,9 +1307,7 @@ alias `$memoryDb` as the parameter name if you'd like a `MemoryDatabase`.
 
 ### Licensing
 
-DocLite is available under the GNU GPL v3 license as open source software. 
-Please contact me if you would like to obtain a license for DocLite under 
-different terms.
+DocLite is available under the MIT license as open source software. 
 
 If you use DocLite and find it useful, I am very grateful for any support 
 towards its future development. 
