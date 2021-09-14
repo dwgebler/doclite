@@ -22,8 +22,8 @@ class DatabaseConnectionTest extends TestCase
         }
         $this->stmt = new FakePDOStatement();
         $this->pdo = new FakePDO($this->stmt);
-        $this->stmt->setResult(['ENABLE_JSON1']);
-        $this->conn = new DatabaseConnection('sqlite::memory:', false, $this->pdo);
+        $this->stmt->setResult(['ENABLE_JSON1', 'ENABLE_FTS5']);
+        $this->conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
         $this->stmt->setResult([]);
     }
 
@@ -32,7 +32,7 @@ class DatabaseConnectionTest extends TestCase
         $this->pdo->setError(true);
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_CONNECTION);
-        $conn = new DatabaseConnection('sqlite::memory:', false, $this->pdo);
+        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
     }
 
     public function testInitExceptionOnMissingJsonExtension()
@@ -40,7 +40,15 @@ class DatabaseConnectionTest extends TestCase
         $this->stmt->setResult([]);
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_NO_JSON1);
-        $conn = new DatabaseConnection('sqlite::memory:', false, $this->pdo);
+        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
+    }
+
+    public function testInitExceptionOnMissingFtsExtension()
+    {
+        $this->stmt->setResult(['ENABLE_JSON1']);
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_NO_FTS5);
+        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
     }
 
     public function testBeginTransactionTrueOnBeginTransaction()

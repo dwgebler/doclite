@@ -38,6 +38,7 @@ A powerful PHP NoSQL document store built on top of SQLite.
   - [Index a collection](#index-a-collection)
   - [Delete a collection](#delete-a-collection)
   - [Collection transactions](#collection-transactions)
+  - [Full text search](#full-text-search)
 - [Documents](#documents)
   - [About Documents](#about-documents)
   - [Getting and setting document data](#getting-and-setting-document-data)
@@ -207,19 +208,34 @@ The corresponding classes are `FileDatabase` and `MemoryDatabase`.
 ### Creating a memory database
 
 `MemoryDatabase` is stored in volatile memory and is therefore ephemeral for the lifetime 
-of your application scripts. Its constructor does not have any parameters.
+of your application scripts. Its constructor takes optional parameters:
+
+- a boolean flag indicating whether to enable full text search features (defaults to `false`) - this
+  feature requires SQLite to have been compiled with the [FTS5 extension](https://www.sqlite.org/fts5.html).
+- an integer representing the maximum connection timeout in seconds (defaults to `1`) which
+  is how long the connection should wait if the underlying SQLite database is locked.
 
 ```php
 use Gebler\Doclite\MemoryDatabase;
 
-$db = new MemoryDatabase(); 
+$db = new MemoryDatabase();
+
+// With full text search enabled and a 2-second connection timeout
+$db = new MemoryDatabase(true, 2); 
 ```
 
 ### Creating a file database
 
-`FileDatabase` constructor takes one mandatory and one optional parameter; the file or directory 
-path to a new or existing database, and a boolean flag indicating whether the database should be 
-opened in read-only mode, which defaults to `false`.
+`FileDatabase` constructor takes one mandatory and then some optional parameters; 
+only the file or directory path to a new or existing database is required. 
+
+Optional parameters are:
+
+- a boolean flag indicating whether the database should be opened in read-only mode, which defaults to `false`.
+- a boolean flag indicating whether to enable full text search features (defaults to `false`) - this
+feature requires SQLite to have been compiled with the [FTS5 extension](https://www.sqlite.org/fts5.html).
+- an integer representing the maximum connection timeout in seconds (defaults to `1`) which
+  is how long the connection should wait if the underlying SQLite database is locked.
 
 The path supplied to `FileDatabase` can be a relative or absolute path which is any of:
 
@@ -241,6 +257,12 @@ $db = new FileDatabase('./data/mydb.db', true);
 
 // Open a new database called data.db in existing directory /home/data
 $db = new FileDatabase('/home/data');
+
+// All options - path, read-only mode, full text search and connection timeout
+$db = new FileDatabase('./data/mydb.db', false, true, 1);
+
+// Or, in PHP 8, named parameters:
+$db = new FileDatabase(path: './data/mydb.db', readOnly: true, ftsEnabled: true);
 ```
 
 If you open a database in read-only mode, you will be able to retrieve documents from a collection, 
@@ -298,6 +320,7 @@ The full list of error codes are as follows:
 | ERR_CONNECTION                   | Unable to connect to database  |
 | ERR_NO_SQLITE                    | PDO SQLite extension is not installed |
 | ERR_NO_JSON1                     | SQLite does not have the JSON1 extension installed |
+| ERR_NO_FTS5                      | FTS5 extension not installed
 | ERR_INVALID_COLLECTION           | Invalid collection name |
 | ERR_MISSING_ID_FIELD             | Custom class for mapping a document does not have an ID field |
 | ERR_INVALID_FIND_CRITERIA        | Attempted to find a document by non-scalar value |

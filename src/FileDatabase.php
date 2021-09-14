@@ -24,25 +24,30 @@ class FileDatabase extends Database
      * @var string
      */
     private const DEFAULT_FILENAME = 'data.db';
+
     /**
      * Database constructor.
      * @param string $path Path to DB directory or file
      * @param bool $readOnly Open DB in read only mode
-     * @param FileSystemInterface|null $fileSystem
+     * @param bool $ftsEnabled Whether to enable full text search support (requires FTS5 extension)
+     * @param int $timeout Max time in seconds to obtain a lock
      * @param DatabaseConnection|null $dbConnection
+     * @param FileSystemInterface|null $fileSystem
      * @throws DatabaseException if DB connection cannot be established
      * @throws IOException if path is not valid and writeable
      */
     public function __construct(
         string $path,
         bool $readOnly = false,
+        bool $ftsEnabled = false,
+        int $timeout = 1,
         ?DatabaseConnection $dbConnection = null,
         ?FileSystemInterface $fileSystem = null
     ) {
         $this->fileSystem = $fileSystem ?? new FileSystem();
         $validatedPath = $this->validatePath($path);
         $dsn = 'sqlite:' . $validatedPath;
-        $this->conn = $dbConnection ?? new DatabaseConnection($dsn, $readOnly);
+        $this->conn = $dbConnection ?? new DatabaseConnection($dsn, $readOnly, $timeout, $ftsEnabled);
         $this->readOnly = $readOnly;
         $this->setJournalMode(self::MODE_JOURNAL_WAL);
     }

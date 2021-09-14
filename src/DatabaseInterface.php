@@ -160,4 +160,12 @@ interface DatabaseInterface
      * @throws DatabaseException
      */
     public function createIndex(string $table, string ...$fields): bool;
+    /**
+     * Create a full text index against the specified table and JSON fields.
+     * @param string $table
+     * @param string ...$fields
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function createFullTextIndex(string $table, string ...$fields): bool;
 }

@@ -253,13 +253,14 @@ class FakeDatabase implements DatabaseInterface
      * @inheritDoc
      */
     public function setCache(
-        string $name,
-        string $type,
-        string $key,
-        string $dataKey,
-        string $cacheData,
+        string             $name,
+        string             $type,
+        string             $key,
+        string             $dataKey,
+        string             $cacheData,
         ?DateTimeImmutable $expiry
-    ): bool {
+    ): bool
+    {
         if (!isset($this->cache[$name])) {
             $this->cache[$name] = [];
         }
@@ -292,6 +293,14 @@ class FakeDatabase implements DatabaseInterface
      * @inheritDoc
      */
     public function createIndex(string $table, string ...$fields): bool
+    {
+        return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function createFullTextIndex(string $table, string ...$fields): bool
     {
         return true;
     }

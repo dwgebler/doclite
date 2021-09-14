@@ -68,6 +68,11 @@ class Collection implements QueryBuilderInterface
      */
     private DocLiteNameConverter $nameConverter;
     /**
+     * @var array
+     */
+    private array $ftsIndexes = [];
+
+    /**
      * Constructor.
      * @param string $name
      * @param DatabaseInterface $db
@@ -125,6 +130,66 @@ class Collection implements QueryBuilderInterface
     public function getSerializer(): Serializer
     {
         return $this->serializer;
+    }
+
+    /**
+     * Get the FTS table name for this collection and specified fields.
+     * @param string ...$fields
+     * @return iterable
+     */
+    private function getFtsTableName(string ...$fields): string
+    {
+        return 'fts_' . strtolower($this->name) . '_' . implode('_', array_map('strtolower', $fields));
+    }
+
+    /**
+     * Perform a full text search on the specified document fields.
+     * @param string $phrase Full text search phrase
+     * @param string ...$fields
+     * @return iterable
+     * @throws DatabaseException
+     */
+    public function search(string $phrase, string ...$fields): iterable
+    {
+        if (!$this->hasFullTextIndex(...$fields)) {
+            $this->addFullTextIndex(...$fields);
+        }
+        $table = $this->getFtsTableName(...$fields);
+        $query = "SELECT s.rowid, s.rank, c.json FROM {$table} s INNER JOIN {$this->name} c ON c.rowid = s.rowid " .
+            "WHERE {$table} MATCH ? ORDER BY s.rank;";
+        return $this->executeDqlQuery($query, [$phrase]);
+    }
+
+    /**
+     * Check if a full text index exists for the given fields.
+     * @param string ...$fields
+     * @return bool
+     */
+    public function hasFullTextIndex(string ...$fields): bool
+    {
+        $fieldsHash = hash('sha256', serialize($fields));
+        return !empty($this->ftsIndexes[$fieldsHash]);
+    }
+
+    /**
+     * Create a full-text search index on document fields in a collection.
+     * Requires SQLite FTS5 extension.
+     * @param string ...$fields
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function addFullTextIndex(string ...$fields): bool
+    {
+        if ($this->db->isReadOnly()) {
+            return false;
+        }
+        $fieldsHash = hash('sha256', serialize($fields));
+        $result = false;
+        if (!isset($this->ftsIndexes[$fieldsHash])) {
+            $result = $this->db->createFullTextIndex($this->name, ...$fields);
+            $this->ftsIndexes[$fieldsHash] = $result;
+        }
+        return $result;
     }
 
     /**

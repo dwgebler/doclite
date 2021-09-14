@@ -993,6 +993,105 @@ abstract class Database implements DatabaseInterface
     }
 
     /**
+     * Create a full text index against the specified table and JSON fields.
+     * @param string $table
+     * @param string ...$fields
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function createFullTextIndex(string $table, string ...$fields): bool
+    {
+        if ($this->readOnly) {
+            throw new DatabaseException(
+                'Cannot create FT index in read only mode',
+                DatabaseException::ERR_READ_ONLY_MODE
+            );
+        }
+
+        if (!$this->isValidTableName($table)) {
+            return false;
+        }
+
+        $innerTableName = strtolower($table) . '_' . implode('_', array_map('strtolower', $fields));
+
+        $viewName = 'v_' . $innerTableName;
+        $ftsTableName = strtolower('fts_' . $innerTableName);
+
+        $existingFts = (bool)$this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
+            'type=\'table\' and name=?', $ftsTableName);
+
+        if ($existingFts) {
+            return true;
+        }
+
+        $fieldsMap = [];
+        foreach ($fields as $field) {
+            if (strlen($field) < 1 || strlen($field) > 64) {
+                return false;
+            }
+            if (!preg_match('/^[A-Za-z0-9_]*$/', $field)) {
+                return false;
+            }
+            $key = strtolower($table) . '_' . strtolower($field);
+            $fieldsMap[$key]['field'] = sprintf("json_extract(json, '$.%s')", $field);
+            $fieldsMap[$key]['trigger_new'] = sprintf("json_extract(new.json, '$.%s')", $field);
+            $fieldsMap[$key]['trigger_old'] = sprintf("json_extract(old.json, '$.%s')", $field);
+        }
+
+        $fieldsList = [];
+        foreach ($fieldsMap as $k => $v) {
+            $fieldsList[] = $v['field'] . ' AS ' . $k;
+        }
+        $fieldsQuery = implode(',', $fieldsList);
+
+        $viewCreated = $this->conn->exec(sprintf(
+            "CREATE VIEW %s AS SELECT ROWID AS id, %s FROM %s;",
+            $viewName,
+            $fieldsQuery,
+            $table
+        )) === 0;
+        if (!$viewCreated) {
+            return false;
+        }
+        $fieldColumnList = implode(',', array_keys($fieldsMap));
+        $ftsTableCreated = $this->conn->exec(sprintf(
+            "CREATE VIRTUAL TABLE %s USING fts5(%s, content='%s', content_rowid='id');",
+            $ftsTableName,
+            $fieldColumnList,
+            $viewName
+        )) === 1;
+        if (!$ftsTableCreated) {
+            return false;
+        }
+        $this->conn->exec(sprintf('INSERT INTO %1$s(%1$s) VALUES(\'rebuild\')', $ftsTableName));
+
+        $nTriggerColumnList = implode(',', array_column($fieldsMap, 'trigger_new'));
+        $oTriggerColumnList = implode(',', array_column($fieldsMap, 'trigger_old'));
+
+        $iTriggerTemplate = "CREATE TRIGGER {$ftsTableName}_ai AFTER INSERT ON $table BEGIN " .
+            "INSERT INTO $ftsTableName (rowid, " . $fieldColumnList . ") VALUES (new.rowid, %s); END;";
+        $iTriggerQuery = sprintf($iTriggerTemplate, $nTriggerColumnList);
+
+        $dTriggerTemplate = "CREATE TRIGGER {$ftsTableName}_ad AFTER DELETE ON $table BEGIN " .
+            "INSERT INTO $ftsTableName ($ftsTableName, rowid, " . $fieldColumnList . ") VALUES " .
+            "('delete', old.rowid, %s); END;";
+        $dTriggerQuery = sprintf($dTriggerTemplate, $oTriggerColumnList);
+
+        $uTriggerTemplate = "CREATE TRIGGER {$ftsTableName}_au AFTER UPDATE ON $table BEGIN " .
+            "INSERT INTO $ftsTableName ($ftsTableName, rowid, " . $fieldColumnList . ") VALUES " .
+            "('delete', old.rowid, %s); " .
+            "INSERT INTO $ftsTableName (rowid, " . $fieldColumnList . ") VALUES (new.rowid, %s); " .
+            "END;";
+        $uTriggerQuery = sprintf($uTriggerTemplate, $oTriggerColumnList, $nTriggerColumnList);
+
+        $this->conn->exec($iTriggerQuery);
+        $this->conn->exec($uTriggerQuery);
+        $this->conn->exec($dTriggerQuery);
+
+        return true;
+    }
+
+    /**
      * Create an index on a table for the specified JSON field(s).
      * @param string $table
      * @param string ...$fields

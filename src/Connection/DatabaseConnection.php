@@ -36,19 +36,36 @@ class DatabaseConnection
      * @var array
      */
     protected array $queryCache;
+    /**
+     * @var int
+     */
+    private int $timeout;
+    /**
+     * @var bool
+     */
+    private bool $ftsEnabled = false;
 
     /**
      * Constructor.
      * @param string $dsn Connection DSN
      * @param bool $readOnly Open in read-only mdoe
+     * @param int $timeout Max time in seconds to obtain a lock
+     * @param bool $fts Flag to enable full text support (requires SQLite FTS5 extension)
      * @param PDO|null $conn
      * @throws DatabaseException on connection error
      */
-    public function __construct(string $dsn, bool $readOnly = false, ?PDO $conn = null)
-    {
+    public function __construct(
+        string $dsn,
+        bool $readOnly = false,
+        int $timeout = 1,
+        bool $fts = false,
+        ?PDO $conn = null
+    ) {
         $this->dsn = $dsn;
         $this->readOnly = $readOnly;
+        $this->timeout = $timeout;
         $this->conn = $conn;
+        $this->ftsEnabled = $fts;
         $this->init();
     }
 
@@ -298,6 +315,7 @@ class DatabaseConnection
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_TIMEOUT => $this->timeout,
         ];
         if ($this->readOnly) {
             $options[PDO::SQLITE_ATTR_OPEN_FLAGS] = PDO::SQLITE_OPEN_READONLY;
@@ -317,12 +335,17 @@ class DatabaseConnection
                 $e
             );
         }
-        if (
-            !in_array('ENABLE_JSON1', $this->conn->query('PRAGMA compile_options')->fetchAll(PDO::FETCH_COLUMN))
-        ) {
+        $compileOptions = $this->conn->query('PRAGMA compile_options')->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('ENABLE_JSON1', $compileOptions)) {
             throw new DatabaseException(
                 'DocLite requires SQLite3 to be built with JSON1 extension',
                 DatabaseException::ERR_NO_JSON1
+            );
+        }
+        if ($this->ftsEnabled && !in_array('ENABLE_FTS5', $compileOptions)) {
+            throw new DatabaseException(
+                'Full text search requires SQLite3 to be built with FTS5 extension',
+                DatabaseException::ERR_NO_FTS5
             );
         }
     }
