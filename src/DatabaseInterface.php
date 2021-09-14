@@ -163,9 +163,10 @@ interface DatabaseInterface
     /**
      * Create a full text index against the specified table and JSON fields.
      * @param string $table
+     * @param string $ftsId A unique ID for this FTS table, comprising the hash of its field names
      * @param string ...$fields
      * @return bool
      * @throws DatabaseException
      */
-    public function createFullTextIndex(string $table, string ...$fields): bool;
+    public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool;
 }

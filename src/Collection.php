@@ -32,6 +32,10 @@ use Symfony\Component\Uid\Uuid;
 class Collection implements QueryBuilderInterface
 {
     /**
+     * @var bool
+     */
+    private static bool $accessorsInitialized = false;
+    /**
      * @var PropertyAccessor
      */
     private static PropertyAccessor $sensitiveAccessor;
@@ -47,10 +51,6 @@ class Collection implements QueryBuilderInterface
      * @var string
      */
     private string $name;
-    /**
-     * @var array
-     */
-    private array $classMappings;
     /**
      * @var bool
      */
@@ -96,12 +96,14 @@ class Collection implements QueryBuilderInterface
         $this->serializer = new Serializer($normalizers, $encoders);
         $this->name = $name;
         $this->db = $db;
-        $this->classMappings = [];
-        self::$sensitiveAccessor = PropertyAccess::createPropertyAccessor();
-        self::$insensitiveAccessor =
-            PropertyAccess::createPropertyAccessorBuilder()
-                ->disableExceptionOnInvalidPropertyPath()
-                ->getPropertyAccessor();
+        if (!self::$accessorsInitialized) {
+            self::$sensitiveAccessor = PropertyAccess::createPropertyAccessor();
+            self::$insensitiveAccessor =
+                PropertyAccess::createPropertyAccessorBuilder()
+                    ->disableExceptionOnInvalidPropertyPath()
+                    ->getPropertyAccessor();
+            self::$accessorsInitialized = true;
+        }
         if (!$this->db->tableExists($name)) {
             $this->db->createTable($name);
         }
@@ -110,6 +112,8 @@ class Collection implements QueryBuilderInterface
         if (!$this->db->tableExists($cacheName)) {
             $this->db->createCacheTable($cacheName);
         }
+
+        $this->ftsIndexes = $this->db->scanFtsTables($this->name);
 
         $this->addIndex(Database::ID_FIELD);
     }
@@ -133,33 +137,41 @@ class Collection implements QueryBuilderInterface
     }
 
     /**
-     * Get the FTS table name for this collection and specified fields.
-     * @param string ...$fields
-     * @return iterable
+     * Perform a full text search on a collection.
+     * @param string $phrase Search phrase
+     * @param string[] $fields Document fields to search
+     * ?string $className Optional custom class to decode documents
+     * ?string $idField Optional custom class ID field
+     * @throws DatabaseException
      */
-    private function getFtsTableName(string ...$fields): string
-    {
-        return 'fts_' . strtolower($this->name) . '_' . implode('_', array_map('strtolower', $fields));
+    public function search(
+        string $phrase,
+        array $fields,
+        ?string $className = null,
+        ?string $idField = null
+    ): iterable {
+        if (($hash = $this->getFtsTableIdForFields(...$fields)) === null) {
+            $this->addFullTextIndex(...$fields);
+            $hash = $this->getFtsTableIdForFields(...$fields);
+        }
+        return $this->fullTextSearch($phrase, $hash, $className, $idField);
     }
 
     /**
-     * Perform a full text search on the specified document fields.
-     * @param string $phrase Full text search phrase
+     * Get the FTS table ID, if any, containing all the fields which are to be searched.
      * @param string ...$fields
-     * @return iterable
-     * @throws DatabaseException
+     * @return ?string The hashed ID, or null if no matching ID found
      */
-    public function search(string $phrase, string ...$fields): iterable
+    private function getFtsTableIdForFields(string ...$fields): ?string
     {
-        if (!$this->hasFullTextIndex(...$fields)) {
-            $this->addFullTextIndex(...$fields);
+        foreach ($this->ftsIndexes as $hash => $indexedFields) {
+            if (empty(array_diff($fields, $indexedFields))) {
+                return $hash;
+            }
         }
-        $table = $this->getFtsTableName(...$fields);
-        $query = "SELECT s.rowid, s.rank, c.json FROM {$table} s INNER JOIN {$this->name} c ON c.rowid = s.rowid " .
-            "WHERE {$table} MATCH ? ORDER BY s.rank;";
-        return $this->executeDqlQuery($query, [$phrase]);
+        return null;
     }
-
+    
     /**
      * Check if a full text index exists for the given fields.
      * @param string ...$fields
@@ -167,8 +179,7 @@ class Collection implements QueryBuilderInterface
      */
     public function hasFullTextIndex(string ...$fields): bool
     {
-        $fieldsHash = hash('sha256', serialize($fields));
-        return !empty($this->ftsIndexes[$fieldsHash]);
+        return $this->getFtsTableIdForFields(...$fields) !== null;
     }
 
     /**
@@ -186,8 +197,8 @@ class Collection implements QueryBuilderInterface
         $fieldsHash = hash('sha256', serialize($fields));
         $result = false;
         if (!isset($this->ftsIndexes[$fieldsHash])) {
-            $result = $this->db->createFullTextIndex($this->name, ...$fields);
-            $this->ftsIndexes[$fieldsHash] = $result;
+            $result = $this->db->createFullTextIndex($this->name, $fieldsHash, ...$fields);
+            $this->ftsIndexes[$fieldsHash] = $fields;
         }
         return $result;
     }
@@ -948,5 +959,13 @@ class Collection implements QueryBuilderInterface
     public function delete(): int
     {
         return (new QueryBuilder($this))->delete();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function fullTextSearch(string $phrase, string $ftsId, ?string $className, ?string $idField): iterable
+    {
+        return (new QueryBuilder($this))->fullTextSearch($phrase, $ftsId, $className, $idField);
     }
 }

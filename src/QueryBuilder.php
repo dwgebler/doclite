@@ -251,6 +251,21 @@ class QueryBuilder implements QueryBuilderInterface
     /**
      * @inheritDoc
      */
+    public function fullTextSearch(
+        string $phrase,
+        string $ftsId,
+        ?string $className = null,
+        ?string $idField = null
+    ): iterable {
+        $table = 'fts_' . strtolower($this->collection->getName()) . '_' . $ftsId;
+        $query = "SELECT s.rowid, s.rank, c.json FROM {$table} s INNER JOIN {$this->collection->getName()} c " .
+            "ON c.rowid = s.rowid WHERE {$table} MATCH ? ORDER BY s.rank;";
+        return $this->collection->executeDqlQuery($query, [$phrase], false, $className, $idField);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function fetchArray(?string $className = null, ?string $idField = null): array
     {
         return iterator_to_array($this->fetch($className, $idField));

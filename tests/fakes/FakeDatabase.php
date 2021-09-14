@@ -253,11 +253,11 @@ class FakeDatabase implements DatabaseInterface
      * @inheritDoc
      */
     public function setCache(
-        string             $name,
-        string             $type,
-        string             $key,
-        string             $dataKey,
-        string             $cacheData,
+        string $name,
+        string $type,
+        string $key,
+        string $dataKey,
+        string $cacheData,
         ?DateTimeImmutable $expiry
     ): bool
     {

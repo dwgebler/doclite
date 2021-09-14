@@ -418,7 +418,7 @@ abstract class Database implements DatabaseInterface
 
         if (empty($collections)) {
             $collections = array_column($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type ='table' " .
-                "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_cache';"), 'name');
+                "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'fts_%' AND name NOT LIKE '%_cache';"), 'name');
         }
 
         foreach ($collections as $i => $collection) {
@@ -993,13 +993,44 @@ abstract class Database implements DatabaseInterface
     }
 
     /**
+     * Scan the database for full text search tables matching a collection name and return a
+     * dictionary of such table names converted to hash IDs and mapped to a list of indexed columns.
+     * @param string $table
+     * @return array
+     */
+    public function scanFtsTables(string $table): array
+    {
+        if (!$this->isValidTableName($table)) {
+            return [];
+        }
+        $ftsTables = [];
+        $table = strtolower($table);
+
+        $tables = array_column($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type ='table' " .
+            "AND name LIKE 'fts_{$table}_%'"), 'name');
+
+        foreach ($tables as $fTable) {
+            $hashId = str_replace('fts_' . $table . '_', '', $fTable);
+            if (preg_match('/^fts_' . $table . '_([A-Za-z0-9])+$/', $fTable)) {
+                $columns = array_column($this->conn->queryAll(sprintf("PRAGMA table_info('%s')", $fTable)), 'name');
+                foreach ($columns as $column) {
+                    $ftsTables[$hashId][] = str_replace($table . '_', '', $column);
+                }
+            }
+        }
+
+        return $ftsTables;
+    }
+
+    /**
      * Create a full text index against the specified table and JSON fields.
      * @param string $table
+     * @param string $ftsId A unique ID for this FTS table, comprising the hash of its field names
      * @param string ...$fields
      * @return bool
      * @throws DatabaseException
      */
-    public function createFullTextIndex(string $table, string ...$fields): bool
+    public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool
     {
         if ($this->readOnly) {
             throw new DatabaseException(
@@ -1012,7 +1043,7 @@ abstract class Database implements DatabaseInterface
             return false;
         }
 
-        $innerTableName = strtolower($table) . '_' . implode('_', array_map('strtolower', $fields));
+        $innerTableName = strtolower($table) . '_' . $ftsId;
 
         $viewName = 'v_' . $innerTableName;
         $ftsTableName = strtolower('fts_' . $innerTableName);
