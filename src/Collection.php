@@ -137,7 +137,7 @@ class Collection implements QueryBuilderInterface
     }
 
     /**
-     * Perform a full text search on a collection.
+     * Perform a full text search on a collection. Creates the full text index if necessary.
      * @param string $phrase Search phrase
      * @param string[] $fields Document fields to search
      * ?string $className Optional custom class to decode documents
@@ -150,10 +150,7 @@ class Collection implements QueryBuilderInterface
         ?string $className = null,
         ?string $idField = null
     ): iterable {
-        if (($hash = $this->getFtsTableIdForFields(...$fields)) === null) {
-            $this->addFullTextIndex(...$fields);
-            $hash = $this->getFtsTableIdForFields(...$fields);
-        }
+        $hash = $this->getFullTextIndex(...$fields);
         return $this->fullTextSearch($phrase, $fields, $hash, $className, $idField);
     }
 
@@ -199,31 +196,44 @@ class Collection implements QueryBuilderInterface
     }
 
     /**
-     * Create a full-text search index on document fields in a collection.
+     * Retrieve or create a full-text search index on document fields in a collection.
      * Requires SQLite FTS5 extension.
      * @param string ...$fields
-     * @return bool
+     * @return string Hash of the indexed fields
      * @throws DatabaseException
      */
-    public function addFullTextIndex(string ...$fields): bool
+    public function getFullTextIndex(string ...$fields): string
     {
-        if ($this->db->isReadOnly()) {
-            return false;
+        $fieldsHash = $this->getFtsTableIdForFields(...$fields);
+        if ($fieldsHash === null) {
+            if ($this->db->isReadOnly()) {
+                throw new DatabaseException(
+                    "Cannot create full text index in read only mode",
+                    DatabaseException::ERR_READ_ONLY_MODE
+                );
+            }
+            if (($partialHash = $this->hasPartialFtsIndex(...$fields)) !== null) {
+                /**
+                 * To avoid unnecessary duplication, if we have an existing index which is a subset
+                 * of the index we need to create, we delete it.
+                 */
+                $this->db->deleteFullTextIndex($this->name, $partialHash);
+            }
+            $fieldsHash = hash('sha256', serialize($fields));
+            if (!isset($this->ftsIndexes[$fieldsHash])) {
+                if (!$this->db->createFullTextIndex($this->name, $fieldsHash, ...$fields)) {
+                    throw new DatabaseException(
+                        "Error creating full text index.",
+                        DatabaseException::ERR_QUERY,
+                        null,
+                        "",
+                        $fields
+                    );
+                }
+                $this->ftsIndexes[$fieldsHash] = $fields;
+            }
         }
-        if (($partialHash = $this->hasPartialFtsIndex(...$fields)) !== null) {
-            /**
-             * To avoid unnecessary duplication, if we have an existing index which is a subset
-             * of the index we need to create, we delete it.
-             */
-            $this->db->deleteFullTextIndex($this->name, $partialHash);
-        }
-        $fieldsHash = hash('sha256', serialize($fields));
-        $result = false;
-        if (!isset($this->ftsIndexes[$fieldsHash])) {
-            $result = $this->db->createFullTextIndex($this->name, $fieldsHash, ...$fields);
-            $this->ftsIndexes[$fieldsHash] = $fields;
-        }
-        return $result;
+        return $fieldsHash;
     }
 
     /**
