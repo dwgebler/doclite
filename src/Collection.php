@@ -150,8 +150,9 @@ class Collection implements QueryBuilderInterface
         ?string $className = null,
         ?string $idField = null
     ): iterable {
-        $hash = $this->getFullTextIndex(...$fields);
-        return $this->fullTextSearch($phrase, $fields, $hash, $className, $idField);
+        return (new QueryBuilder($this))->search($phrase, $fields, $className, $idField);
+        //$hash = $this->getFullTextIndex(...$fields);
+        //return $this->fullTextSearch($phrase, $fields, $hash, $className, $idField);
     }
 
     /**

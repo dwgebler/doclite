@@ -63,20 +63,18 @@ interface QueryBuilderInterface
     public function orderBy(string $field, string $direction): self;
     /**
      * Search a full text index for a collection.
-     * @param string $term The phrase to search
+     * @param string $phrase The phrase to search
      * @param string[] $fields List of document fields to search
-     * @param string $ftsId FTS table id, a unique ID for this FTS table, comprising the hash of its field names
      * @param string|null $className Custom class name
      * @param string|null $idField Custom class ID field
      * @return iterable
      * @throws DatabaseException
      */
-    public function fullTextSearch(
-        string $term,
+    public function search(
+        string $phrase,
         array $fields,
-        string $ftsId,
-        ?string $className,
-        ?string $idField
+        ?string $className = null,
+        ?string $idField = null
     ): iterable;
     /**
      * Fetch query results.

@@ -249,8 +249,59 @@ class QueryBuilder implements QueryBuilderInterface
     }
 
     /**
-     * @inheritDoc
+     * @inheritdoc
      */
+    public function search(
+        string $phrase,
+        array $fields,
+        ?string $className = null,
+        ?string $idField = null
+    ): iterable {
+        $hash = $this->collection->getFullTextIndex(...$fields);
+        $query = $this->getFullTextSearchQuery($phrase, $fields, $hash);
+        return $this->collection->executeDqlQuery(
+            $query,
+            $this->queryParameters,
+            false,
+            $className,
+            $idField
+        );
+    }
+
+    /**
+     * Get search query
+     */
+    private function getFullTextSearchQuery(string $phrase, array $fields, string $hash): string
+    {
+        $phrases = [];
+        foreach ($fields as $field) {
+            if (!empty($phrase)) {
+                $ftsTerm = '"' . str_replace('"', '""', $phrase) . '"';
+                $phrases[] = strtolower($this->collection->getName()) . '_' . $field . ':' . $ftsTerm;
+            }
+        }
+        $phrase = implode(' OR ', $phrases);
+        $table = 'fts_' . strtolower($this->collection->getName()) . '_' . $hash;
+        $queryTemplate = "SELECT s.rowid, s.rank, {$this->collection->getName()}.json FROM {$table} s INNER JOIN {$this->collection->getName()} " .
+            "ON {$this->collection->getName()}.rowid = s.rowid %s WHERE {$table} MATCH ? AND %s ORDER BY s.rank LIMIT %d OFFSET %d;";
+
+        $this->queryParameters = [$phrase];
+        $treePart = '';
+        $wherePart = $this->getWhereCondition($treePart);
+        $limitPart = $this->queryConditions['limit'];
+        $offsetPart = $this->queryConditions['offset'];
+
+        $orderPart = $this->forgeOrderClause();
+        if (empty($orderPart)) {
+            $orderPart = sprintf('"%s".ROWID', $this->collection->getName());
+        }
+
+        return sprintf($queryTemplate, $treePart, $wherePart, $limitPart, $offsetPart);
+    }
+
+    /**
+     * @inheritDoc
+     *
     public function fullTextSearch(
         string $term,
         array $fields,
@@ -270,7 +321,7 @@ class QueryBuilder implements QueryBuilderInterface
         $query = "SELECT s.rowid, s.rank, c.json FROM {$table} s INNER JOIN {$this->collection->getName()} c " .
             "ON c.rowid = s.rowid WHERE {$table} MATCH ? ORDER BY s.rank;";
         return $this->collection->executeDqlQuery($query, [$phrase], false, $className, $idField);
-    }
+    }*/
 
     /**
      * @inheritDoc
