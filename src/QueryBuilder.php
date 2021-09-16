@@ -252,11 +252,20 @@ class QueryBuilder implements QueryBuilderInterface
      * @inheritDoc
      */
     public function fullTextSearch(
-        string $phrase,
+        string $term,
+        array $fields,
         string $ftsId,
         ?string $className = null,
         ?string $idField = null
     ): iterable {
+        $phrases = [];
+        foreach ($fields as $field) {
+            if (!empty($term)) {
+                $ftsTerm = '"' . str_replace('"', '""', $term) . '"';
+                $phrases[] = strtolower($this->collection->getName()) . '_' . $field . ':' . $ftsTerm;
+            }
+        }
+        $phrase = implode(' OR ', $phrases);
         $table = 'fts_' . strtolower($this->collection->getName()) . '_' . $ftsId;
         $query = "SELECT s.rowid, s.rank, c.json FROM {$table} s INNER JOIN {$this->collection->getName()} c " .
             "ON c.rowid = s.rowid WHERE {$table} MATCH ? ORDER BY s.rank;";

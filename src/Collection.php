@@ -154,7 +154,7 @@ class Collection implements QueryBuilderInterface
             $this->addFullTextIndex(...$fields);
             $hash = $this->getFtsTableIdForFields(...$fields);
         }
-        return $this->fullTextSearch($phrase, $hash, $className, $idField);
+        return $this->fullTextSearch($phrase, $fields, $hash, $className, $idField);
     }
 
     /**
@@ -171,7 +171,23 @@ class Collection implements QueryBuilderInterface
         }
         return null;
     }
-    
+
+    /**
+     * Determine if the specified fields are a superset of fields already held in a FTS index.
+     * Return the matching hash ID of the FTS table if so, or null if no match.
+     * @param string ...$fields
+     * @return ?string
+     */
+    private function hasPartialFtsIndex(string ...$fields): ?string
+    {
+        foreach ($this->ftsIndexes as $hash => $indexedFields) {
+            if (empty(array_diff($indexedFields, $fields))) {
+                return $hash;
+            }
+        }
+        return null;
+    }
+
     /**
      * Check if a full text index exists for the given fields.
      * @param string ...$fields
@@ -193,6 +209,13 @@ class Collection implements QueryBuilderInterface
     {
         if ($this->db->isReadOnly()) {
             return false;
+        }
+        if (($partialHash = $this->hasPartialFtsIndex(...$fields)) !== null) {
+            /**
+             * To avoid unnecessary duplication, if we have an existing index which is a subset
+             * of the index we need to create, we delete it.
+             */
+            $this->db->deleteFullTextIndex($this->name, $partialHash);
         }
         $fieldsHash = hash('sha256', serialize($fields));
         $result = false;
@@ -964,8 +987,13 @@ class Collection implements QueryBuilderInterface
     /**
      * @inheritDoc
      */
-    public function fullTextSearch(string $phrase, string $ftsId, ?string $className, ?string $idField): iterable
-    {
-        return (new QueryBuilder($this))->fullTextSearch($phrase, $ftsId, $className, $idField);
+    public function fullTextSearch(
+        string $term,
+        array $fields,
+        string $ftsId,
+        ?string $className,
+        ?string $idField
+    ): iterable {
+        return (new QueryBuilder($this))->fullTextSearch($term, $fields, $ftsId, $className, $idField);
     }
 }

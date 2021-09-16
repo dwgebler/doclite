@@ -1023,6 +1023,42 @@ abstract class Database implements DatabaseInterface
     }
 
     /**
+     * Delete a full text index for a collection.
+     * @param string $table
+     * @param string $hashId
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function deleteFullTextIndex(string $table, string $hashId): bool
+    {
+        if ($this->readOnly) {
+            throw new DatabaseException(
+                'Cannot delete FT index in read only mode',
+                DatabaseException::ERR_READ_ONLY_MODE
+            );
+        }
+        if (!$this->isValidTableName($table)) {
+            return false;
+        }
+
+        $innerTableName = strtolower($table) . '_' . $hashId;
+        $ftsTable = 'fts_' . $innerTableName;
+        $viewName = 'v_' . $innerTableName;
+        $triggers = [
+            $ftsTable . '_ai',
+            $ftsTable . '_au',
+            $ftsTable . '_ad',
+        ];
+
+        $this->conn->exec("DROP VIEW IF EXISTS {$viewName};");
+        foreach ($triggers as $trigger) {
+            $this->conn->exec("DROP TRIGGER IF EXISTS {$trigger};");
+        }
+        $this->conn->exec("DROP TABLE IF EXISTS {$ftsTable};");
+        return true;
+    }
+
+    /**
      * Create a full text index against the specified table and JSON fields.
      * @param string $table
      * @param string $ftsId A unique ID for this FTS table, comprising the hash of its field names
