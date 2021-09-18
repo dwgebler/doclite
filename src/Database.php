@@ -84,6 +84,10 @@ abstract class Database implements DatabaseInterface
      * @var bool
      */
     protected bool $readOnly = false;
+    /**
+     * @var bool
+     */
+    protected bool $ftsEnabled = false;
 
     /**
      * Get product version
@@ -92,6 +96,15 @@ abstract class Database implements DatabaseInterface
     public function getVersion(): string
     {
         return self::VERSION;
+    }
+
+    /**
+     * Get FTS enabled
+     * @return bool
+     */
+    public function isFtsEnabled(): bool
+    {
+        return $this->ftsEnabled;
     }
 
     /**
@@ -997,6 +1010,7 @@ abstract class Database implements DatabaseInterface
      * dictionary of such table names converted to hash IDs and mapped to a list of indexed columns.
      * @param string $table
      * @return array
+     * @throws DatabaseException
      */
     public function scanFtsTables(string $table): array
     {
@@ -1031,6 +1045,9 @@ abstract class Database implements DatabaseInterface
      */
     public function deleteFullTextIndex(string $table, string $hashId): bool
     {
+        if (!$this->ftsEnabled) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
         if ($this->readOnly) {
             throw new DatabaseException(
                 'Cannot delete FT index in read only mode',
@@ -1068,6 +1085,9 @@ abstract class Database implements DatabaseInterface
      */
     public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool
     {
+        if (!$this->ftsEnabled) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
         if ($this->readOnly) {
             throw new DatabaseException(
                 'Cannot create FT index in read only mode',

@@ -35,5 +35,6 @@ class MemoryDatabase extends Database
         $dsn = 'sqlite::memory:';
         $this->conn = $dbConnection ?? new DatabaseConnection($dsn, false, $timeout, $ftsEnabled);
         $this->fileSystem = $fileSystem ?? new FileSystem();
+        $this->ftsEnabled = $ftsEnabled;
     }
 }

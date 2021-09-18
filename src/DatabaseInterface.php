@@ -20,6 +20,19 @@ interface DatabaseInterface
      */
     public function collection(string $name): Collection;
     /**
+     * Get FTS enabled.
+     * @return bool
+     */
+    public function isFtsEnabled(): bool;
+    /**
+     * Scan the database for full text search tables matching a collection name and return a
+     * dictionary of such table names converted to hash IDs and mapped to a list of indexed columns.
+     * @param string $table
+     * @return array
+     * @throws DatabaseException
+     */
+    public function scanFtsTables(string $table): array;
+    /**
      * Get read only mode.
      * @return bool
      */

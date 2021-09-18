@@ -113,7 +113,9 @@ class Collection implements QueryBuilderInterface
             $this->db->createCacheTable($cacheName);
         }
 
-        $this->ftsIndexes = $this->db->scanFtsTables($this->name);
+        if ($this->db->isFtsEnabled()) {
+            $this->ftsIndexes = $this->db->scanFtsTables($this->name);
+        }
 
         $this->addIndex(Database::ID_FIELD);
     }
@@ -150,6 +152,9 @@ class Collection implements QueryBuilderInterface
         ?string $className = null,
         ?string $idField = null
     ): iterable {
+        if (!$this->db->isFtsEnabled()) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
         return (new QueryBuilder($this))->search($phrase, $fields, $className, $idField);
         //$hash = $this->getFullTextIndex(...$fields);
         //return $this->fullTextSearch($phrase, $fields, $hash, $className, $idField);
@@ -190,9 +195,13 @@ class Collection implements QueryBuilderInterface
      * Check if a full text index exists for the given fields.
      * @param string ...$fields
      * @return bool
+     * @throws DatabaseException
      */
     public function hasFullTextIndex(string ...$fields): bool
     {
+        if (!$this->db->isFtsEnabled()) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
         return $this->getFtsTableIdForFields(...$fields) !== null;
     }
 
@@ -205,6 +214,9 @@ class Collection implements QueryBuilderInterface
      */
     public function getFullTextIndex(string ...$fields): string
     {
+        if (!$this->db->isFtsEnabled()) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
         $fieldsHash = $this->getFtsTableIdForFields(...$fields);
         if ($fieldsHash === null) {
             if ($this->db->isReadOnly()) {

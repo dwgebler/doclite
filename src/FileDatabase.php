@@ -49,6 +49,7 @@ class FileDatabase extends Database
         $dsn = 'sqlite:' . $validatedPath;
         $this->conn = $dbConnection ?? new DatabaseConnection($dsn, $readOnly, $timeout, $ftsEnabled);
         $this->readOnly = $readOnly;
+        $this->ftsEnabled = $ftsEnabled;
         $this->setJournalMode(self::MODE_JOURNAL_WAL);
     }
 
