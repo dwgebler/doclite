@@ -1019,4 +1019,16 @@ class Collection implements QueryBuilderInterface
     ): iterable {
         return (new QueryBuilder($this))->fullTextSearch($term, $fields, $ftsId, $className, $idField);
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function join(
+        Collection $collection,
+        string $field,
+        string $key,
+        bool $excludeField = false
+    ): QueryBuilderInterface {
+        return (new QueryBuilder($this))->join($collection, $field, $key, $excludeField);
+    }
 }

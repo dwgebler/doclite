@@ -62,6 +62,15 @@ interface QueryBuilderInterface
      */
     public function orderBy(string $field, string $direction): self;
     /**
+     * Join a collection to another using a field as a foreign key.
+     * @param Collection $collection Foreign collection to join
+     * @param string $field The document field in the foreign collection to match against key
+     * @param string $key The field in the joining collection to match against foreign field
+     * @param bool $excludeField Flag indicating whether the foreign field should be excluded from the resultant fields.
+     * @return $this
+     */
+    public function join(Collection $collection, string $field, string $key, bool $excludeField = false): self;
+    /**
      * Search a full text index for a collection.
      * @param string $phrase The phrase to search
      * @param string[] $fields List of document fields to search
