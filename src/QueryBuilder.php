@@ -509,7 +509,7 @@ class QueryBuilder implements QueryBuilderInterface
                     $jsonPart = sprintf("json_remove(%s, '$.%s')", $jsonPart, $join['field']);
                 }
                 $queryPart .= sprintf(
-                    ", '$.%s', json(json_group_array(%s))",
+                    ", '$.%s', json(json_group_array(DISTINCT %s))",
                     $join['collection'],
                     $jsonPart
                 );
