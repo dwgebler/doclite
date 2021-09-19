@@ -500,7 +500,7 @@ class QueryBuilder implements QueryBuilderInterface
         $default = sprintf('"%1$s".json', $this->collection->getName());
         $select = null;
         if (!empty($this->joins)) {
-            $select = "json_set({$default}%s)";
+            $select = "json_set({$default}%s) AS json";
             $queryPart = '';
             $joinCounter = 1;
             foreach ($this->joins as $join) {
