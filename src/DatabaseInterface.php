@@ -182,4 +182,12 @@ interface DatabaseInterface
      * @throws DatabaseException
      */
     public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool;
+    /**
+     * Delete a full text index against the specified table.
+     * @param string $table
+     * @param string $hashId
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function deleteFullTextIndex(string $table, string $hashId): bool;
 }

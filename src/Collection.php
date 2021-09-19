@@ -156,8 +156,6 @@ class Collection implements QueryBuilderInterface
             throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
         }
         return (new QueryBuilder($this))->search($phrase, $fields, $className, $idField);
-        //$hash = $this->getFullTextIndex(...$fields);
-        //return $this->fullTextSearch($phrase, $fields, $hash, $className, $idField);
     }
 
     /**
@@ -1005,19 +1003,6 @@ class Collection implements QueryBuilderInterface
     public function delete(): int
     {
         return (new QueryBuilder($this))->delete();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function fullTextSearch(
-        string $term,
-        array $fields,
-        string $ftsId,
-        ?string $className,
-        ?string $idField
-    ): iterable {
-        return (new QueryBuilder($this))->fullTextSearch($term, $fields, $ftsId, $className, $idField);
     }
 
     /**
