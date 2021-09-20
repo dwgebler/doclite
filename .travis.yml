@@ -1,0 +1,9 @@
+language: php
+php:
+  - 7.4
+  - 8.0
+install:
+  - composer install
+script:
+  - php vendor/bin/phpcs --standard=PSR12 src/
+  - php vendor/bin/phpunit -c phpunit.xml.dist -v tests/unit/
