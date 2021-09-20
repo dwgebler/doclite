@@ -21,9 +21,9 @@ class DatabaseTest extends TestCase
     {
         $this->conn = $this->createMock(DatabaseConnection::class);
         $this->fs = new FakeFileSystem();
-        $this->db = new MemoryDatabase($this->conn, $this->fs);
+        $this->db = new MemoryDatabase(true, 1, $this->conn, $this->fs);
         $this->readDb = $db = new FileDatabase(
-            '/foo/bar', true, $this->conn, $this->fs);
+            '/foo/bar', true, true, 1, $this->conn, $this->fs);
     }
 
     public function testGetSyncModeReturnsIntegerMode()

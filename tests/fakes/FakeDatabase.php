@@ -18,11 +18,13 @@ class FakeDatabase implements DatabaseInterface
 {
 
     private bool $readOnly = false;
+    private bool $ftsEnabled = false;
     private bool $inTransaction = false;
     private string $transactionTable = '';
 
     private $data = [];
     private $cache = [];
+    private $fts = [];
 
     private $findResults;
 
@@ -52,6 +54,18 @@ class FakeDatabase implements DatabaseInterface
         $this->readOnly = $readOnly;
         return $this;
     }
+
+    /**
+     * Set FTS enabled
+     * @param bool $enabled
+     * @return $this
+     */
+    public function setFtsEnabled(bool $enabled): self
+    {
+        $this->ftsEnabled = $enabled;
+        return $this;
+    }
+
 
     /**
      * @inheritDoc
@@ -300,8 +314,52 @@ class FakeDatabase implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function createFullTextIndex(string $table, string ...$fields): bool
+    public function isFtsEnabled(): bool
     {
+        return $this->ftsEnabled;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function scanFtsTables(string $table): array
+    {
+        $ftsTables = [];
+        $table = strtolower($table);
+
+        foreach ($this->fts as $key => $fields) {
+            $hashId = str_replace('fts_' . $table . '_', '', $key);
+            if (preg_match('/^fts_' . $table . '_([A-Za-z0-9])+$/', $key)) {
+                $ftsTables[$hashId][] = $fields;
+            }
+        }
+
+        return $ftsTables;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool
+    {
+        $innerTableName = strtolower($table) . '_' . $ftsId;
+        $ftsTableName = strtolower('fts_' . $innerTableName);
+        $this->fts[$ftsTableName] = $fields;
         return true;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function deleteFullTextIndex(string $table, string $hashId): bool
+    {
+        $innerTableName = strtolower($table) . '_' . $hashId;
+        $ftsTableName = strtolower('fts_' . $innerTableName);
+        if (isset($this->fts[$ftsTableName])) {
+            unset($this->fts[$ftsTableName]);
+        }
+        return true;
+    }
+
+
 }
