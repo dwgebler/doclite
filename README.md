@@ -34,6 +34,7 @@ A powerful PHP NoSQL document store built on top of SQLite.
     - [Find all documents in collection](#find-all-documents-in-collection)
     - [Advanced queries](#advanced-queries)
     - [Query operators](#query-operators)
+  - [Join collections](#join-collections)
   - [Caching results](#caching-results)
   - [Index a collection](#index-a-collection)
   - [Delete a collection](#delete-a-collection)
@@ -836,6 +837,42 @@ Advanced queries support the following operators:
 | EMPTY | Has no value, null |
 | NOT EMPTY | Has any value, not null |
 
+### Join Collections
+
+It is possible to join a collection to one or more other collections when running a query, 
+to include matching results from these collections in the documents returned. This works much 
+like a foreign key in a relational database.
+
+For example, if you have a `users` collection and a `comments` collection, where some documents in 
+`comments` contain a field `user_id`. You can query `users` and join on `comments`, such that any documents 
+matching in `comments` for the same user ID will be included in the `users` document, under a field called `comments`.
+
+```php
+/**
+ * Imagine a user document like:
+ * {"__id":"1", "name":"John Smith"}
+ * 
+ * and a corresponding comments document like:
+ * {"__id":"5", "user_id": "1", "comment":"Hello world!"} 
+ * 
+ * You can query the users collection with a join to retrieve an aggregated document like this:
+ * {"__id":"1", "name":"John Smith", "comments":[{{"__id":"5", "comment":"Hello world!"}}]}
+ */
+$users = $db->collection('Users');
+$comments = $db->collection("Comments");
+$users->where('__id', '=', '1')->join($comments, 'user_id', '__id')->fetchArray();
+```
+
+The `Collection::join` method takes the collection to join as the first parameter, the name of the 
+document field in that collection to use as a foreign key as the second parameter, and 
+the corresponding field in documents in the joining collection (e.g. Users) to match against.
+
+The above example therefore is looking for documents in `Comments` where the field `user_id` matches the 
+field `__id` in Users.
+
+As `join` is part of the standard query building interface on a `Collection`, you can combine with other 
+query operators such as `where`, `and` etc. or other joins.
+
 ### Caching results
 
 DocLite can cache the results of queries to speed up retrieval of complex result sets. 
@@ -930,6 +967,42 @@ $collection->commit();
 $collection->rollback();
 ```
 
+### Full text search
+
+DocLite is able to build powerful full text indexes against collections to allow you to 
+search and produce a list of documents, ordered by relevance, where specified fields match some text or phrase.
+
+Full text search capability requires your PHP's `libsqlite` to be built with the FTS5 extension. 
+Just like the JSON1 extension, this is usually bundled in to the standard distribution so you probably already have it.
+
+To search a collection, ensure you have initialized your `Database` with the full text parameter set to `true` to enable 
+this feature, then simply call the `search()` method on any collection, with the search phrase followed by an array of
+the names of any document fields you wish to search against.
+
+```php
+$path = '/path/to/db';
+$readOnly = false;
+$ftsEnabled = true;
+$timeout = 1;
+$db = new FileDatabase($path, $readOnly, $ftsEnabled, $timeout);
+$blogPosts = $db->collection("posts");
+$results = $blogPosts->search('apache', ['title', 'summary', 'content']);
+```
+
+Results are automatically ordered by relevance. 
+
+> :bulb: DocLite will intelligently manage your full text indexes to keep your database optimized.
+> When you call `search()`, if there is no index for the set of fields you are searching on, it will be created automatically on the first search.
+> If you later call `search()` on a superset of fields for an existing index, the original index 
+> will be destroyed and a new, larger index encompassing all searched fields created. This is so DocLite can use the smallest possible index for _all_ the fields you wish to search against.
+> 
+> On small collections, this process is so fast you may not see an impact. If, however, you have a very
+> large collection, the recommendation is to create your full text indexes by calling `search()` once from a 
+> separate script, so that when your application first runs and calls `search()`, the relevant indexes already exist.
+
+Because `search()` is part of the standard query fetching interface on a collection (same as `fetch()` and `count()`), it can be preceded by 
+normal query filters using `where()`, `and()` etc. Similar to `fetch()`, the `search()` method returns 
+a generator. You can convert the results to an array by using PHP's `iterator_to_array()` function.
 
 ## Documents
 
