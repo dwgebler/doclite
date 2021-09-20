@@ -330,7 +330,7 @@ class FakeDatabase implements DatabaseInterface
         foreach ($this->fts as $key => $fields) {
             $hashId = str_replace('fts_' . $table . '_', '', $key);
             if (preg_match('/^fts_' . $table . '_([A-Za-z0-9])+$/', $key)) {
-                $ftsTables[$hashId][] = $fields;
+                $ftsTables[$hashId] = $fields;
             }
         }
 

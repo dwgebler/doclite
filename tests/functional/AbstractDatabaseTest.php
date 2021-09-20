@@ -273,4 +273,18 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->assertInstanceOf(Collection::class, $collection);
         $this->assertTrue($this->db->tableExists('new_test'));
     }
+
+    public function testCreateFullTextIndex()
+    {
+        $this->db->createFullTextIndex('test', 'abc123', 'foo', 'bar');
+        $result = $this->db->scanFtsTables('test');
+        $this->assertEquals(['abc123' => ['foo', 'bar']], $result);
+    }
+
+    public function testDeleteFullTextIndex()
+    {
+        $this->db->createFullTextIndex('test', 'abc123', 'foo', 'bar');
+        $this->db->deleteFullTextIndex('test', 'abc123');
+        $this->assertEmpty($this->db->scanFtsTables('test'));
+    }
 }

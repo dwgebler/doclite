@@ -8,7 +8,7 @@ class MemoryDatabaseTest extends AbstractDatabaseTest
 {
     protected function setUp(): void
     {
-        $this->db = new MemoryDatabase();
+        $this->db = new MemoryDatabase(true);
         parent::setup();
     }
 
