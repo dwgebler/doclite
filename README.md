@@ -1,7 +1,7 @@
 # DocLite
 A powerful PHP NoSQL document store built on top of SQLite.
 
-[![Build Status](https://travis-ci.com/dwgebler/doclite.svg?token=uj4HfXm5wqJXVuPAd984&branch=master)](https://travis-ci.com/dwgebler/doclite)
+[![Build Status](https://travis-ci.com/dwgebler/doclite.svg?token=uj4HfXm5wqJXVuPAd984&branch=master)](https://app.travis-ci.com/github/dwgebler/doclite)
 
 ## Table of contents
 
