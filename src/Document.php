@@ -382,10 +382,7 @@ class Document
             if (!$uuid instanceof UuidV1) {
                 throw new InvalidArgumentException('Invalid UUID, not v1');
             }
-            return DateTimeImmutable::createFromFormat(
-                "U.u",
-                (string)$uuid->getTime()
-            );
+            return $uuid->getDateTime();
         } catch (InvalidArgumentException $e) {
             throw new DatabaseException(
                 sprintf('Id [%s] is not a v1 UUID', $this->id),

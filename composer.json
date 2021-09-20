@@ -1,6 +1,6 @@
 {
     "name": "dwgebler/doclite",
-    "version": "1.0.5",
+    "version": "1.1.0",
     "keywords": ["nosql","database","document","json","file","sqlite","store"],
     "description": "A powerful NoSQL data store built on top of SQLite",
     "type": "library",
@@ -13,7 +13,7 @@
         "symfony/property-access": "^5.2",
         "symfony/property-info": "^5.2",
         "symfony/serializer": "^5.2",
-        "symfony/uid": "^5.2",
+        "symfony/uid": "^5.3",
         "symfony/yaml": "^5.2"
     },
     "require-dev": {

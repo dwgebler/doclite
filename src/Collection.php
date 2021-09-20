@@ -32,6 +32,10 @@ use Symfony\Component\Uid\Uuid;
 class Collection implements QueryBuilderInterface
 {
     /**
+     * @var bool
+     */
+    private static bool $accessorsInitialized = false;
+    /**
      * @var PropertyAccessor
      */
     private static PropertyAccessor $sensitiveAccessor;
@@ -48,10 +52,6 @@ class Collection implements QueryBuilderInterface
      */
     private string $name;
     /**
-     * @var array
-     */
-    private array $classMappings;
-    /**
      * @var bool
      */
     private bool $cachingEnabled = false;
@@ -67,6 +67,11 @@ class Collection implements QueryBuilderInterface
      * @var DocLiteNameConverter
      */
     private DocLiteNameConverter $nameConverter;
+    /**
+     * @var array
+     */
+    private array $ftsIndexes = [];
+
     /**
      * Constructor.
      * @param string $name
@@ -91,12 +96,14 @@ class Collection implements QueryBuilderInterface
         $this->serializer = new Serializer($normalizers, $encoders);
         $this->name = $name;
         $this->db = $db;
-        $this->classMappings = [];
-        self::$sensitiveAccessor = PropertyAccess::createPropertyAccessor();
-        self::$insensitiveAccessor =
-            PropertyAccess::createPropertyAccessorBuilder()
-                ->disableExceptionOnInvalidPropertyPath()
-                ->getPropertyAccessor();
+        if (!self::$accessorsInitialized) {
+            self::$sensitiveAccessor = PropertyAccess::createPropertyAccessor();
+            self::$insensitiveAccessor =
+                PropertyAccess::createPropertyAccessorBuilder()
+                    ->disableExceptionOnInvalidPropertyPath()
+                    ->getPropertyAccessor();
+            self::$accessorsInitialized = true;
+        }
         if (!$this->db->tableExists($name)) {
             $this->db->createTable($name);
         }
@@ -104,6 +111,10 @@ class Collection implements QueryBuilderInterface
         $cacheName = $this->getCacheName();
         if (!$this->db->tableExists($cacheName)) {
             $this->db->createCacheTable($cacheName);
+        }
+
+        if ($this->db->isFtsEnabled()) {
+            $this->ftsIndexes = $this->db->scanFtsTables($this->name);
         }
 
         $this->addIndex(Database::ID_FIELD);
@@ -125,6 +136,115 @@ class Collection implements QueryBuilderInterface
     public function getSerializer(): Serializer
     {
         return $this->serializer;
+    }
+
+    /**
+     * Perform a full text search on a collection. Creates the full text index if necessary.
+     * @param string $phrase Search phrase
+     * @param string[] $fields Document fields to search
+     * ?string $className Optional custom class to decode documents
+     * ?string $idField Optional custom class ID field
+     * @throws DatabaseException
+     */
+    public function search(
+        string $phrase,
+        array $fields,
+        ?string $className = null,
+        ?string $idField = null
+    ): iterable {
+        if (!$this->db->isFtsEnabled()) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
+        return (new QueryBuilder($this))->search($phrase, $fields, $className, $idField);
+    }
+
+    /**
+     * Get the FTS table ID, if any, containing all the fields which are to be searched.
+     * @param string ...$fields
+     * @return ?string The hashed ID, or null if no matching ID found
+     */
+    private function getFtsTableIdForFields(string ...$fields): ?string
+    {
+        foreach ($this->ftsIndexes as $hash => $indexedFields) {
+            if (empty(array_diff($fields, $indexedFields))) {
+                return $hash;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Determine if the specified fields are a superset of fields already held in a FTS index.
+     * Return the matching hash ID of the FTS table if so, or null if no match.
+     * @param string ...$fields
+     * @return ?string
+     */
+    private function hasPartialFtsIndex(string ...$fields): ?string
+    {
+        foreach ($this->ftsIndexes as $hash => $indexedFields) {
+            if (empty(array_diff($indexedFields, $fields))) {
+                return $hash;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if a full text index exists for the given fields.
+     * @param string ...$fields
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function hasFullTextIndex(string ...$fields): bool
+    {
+        if (!$this->db->isFtsEnabled()) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
+        return $this->getFtsTableIdForFields(...$fields) !== null;
+    }
+
+    /**
+     * Retrieve or create a full-text search index on document fields in a collection.
+     * Requires SQLite FTS5 extension.
+     * @param string ...$fields
+     * @return string Hash of the indexed fields
+     * @throws DatabaseException
+     */
+    public function getFullTextIndex(string ...$fields): string
+    {
+        if (!$this->db->isFtsEnabled()) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
+        $fieldsHash = $this->getFtsTableIdForFields(...$fields);
+        if ($fieldsHash === null) {
+            if ($this->db->isReadOnly()) {
+                throw new DatabaseException(
+                    "Cannot create full text index in read only mode",
+                    DatabaseException::ERR_READ_ONLY_MODE
+                );
+            }
+            if (($partialHash = $this->hasPartialFtsIndex(...$fields)) !== null) {
+                /**
+                 * To avoid unnecessary duplication, if we have an existing index which is a subset
+                 * of the index we need to create, we delete it.
+                 */
+                $this->db->deleteFullTextIndex($this->name, $partialHash);
+            }
+            $fieldsHash = hash('sha256', serialize($fields));
+            if (!isset($this->ftsIndexes[$fieldsHash])) {
+                if (!$this->db->createFullTextIndex($this->name, $fieldsHash, ...$fields)) {
+                    throw new DatabaseException(
+                        "Error creating full text index.",
+                        DatabaseException::ERR_QUERY,
+                        null,
+                        "",
+                        $fields
+                    );
+                }
+                $this->ftsIndexes[$fieldsHash] = $fields;
+            }
+        }
+        return $fieldsHash;
     }
 
     /**
@@ -883,5 +1003,17 @@ class Collection implements QueryBuilderInterface
     public function delete(): int
     {
         return (new QueryBuilder($this))->delete();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function join(
+        Collection $collection,
+        string $field,
+        string $key,
+        bool $excludeField = false
+    ): QueryBuilderInterface {
+        return (new QueryBuilder($this))->join($collection, $field, $key, $excludeField);
     }
 }

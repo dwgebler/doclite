@@ -21,9 +21,9 @@ class DatabaseTest extends TestCase
     {
         $this->conn = $this->createMock(DatabaseConnection::class);
         $this->fs = new FakeFileSystem();
-        $this->db = new MemoryDatabase($this->conn, $this->fs);
+        $this->db = new MemoryDatabase(true, 1, $this->conn, $this->fs);
         $this->readDb = $db = new FileDatabase(
-            '/foo/bar', true, $this->conn, $this->fs);
+            '/foo/bar', true, true, 1, $this->conn, $this->fs);
     }
 
     public function testGetSyncModeReturnsIntegerMode()
@@ -448,6 +448,37 @@ class DatabaseTest extends TestCase
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_IN_TRANSACTION);
         $this->db->optimize();
+    }
+
+    public function testIsFtsEnabledReturnsFtsEnabled()
+    {
+        $this->assertTrue($this->db->isFtsEnabled());
+    }
+
+    public function testScanFtsTablesReturnsDictionaryOfHashIdsToColumns()
+    {
+        $tables = [
+            ['name' => 'fts_posts_abc123'],
+            ['name' => 'fts_other_def456'],
+            ['name' => 'fts_posts_ghi789'],
+        ];
+        $columns_abc = [
+            ['name' => 'column_1'],
+            ['name' => 'column_2'],
+            ['name' => 'column_3'],
+        ];
+        $columns_ghi = [
+            ['name' => 'column_4'],
+            ['name' => 'column_5'],
+            ['name' => 'column_6'],
+        ];
+        $this->conn->method('queryAll')->willReturnOnConsecutiveCalls($tables, $columns_abc, $columns_ghi);
+        $result = $this->db->scanFtsTables('posts');
+        $expected = [
+            'abc123' => ['column_1', 'column_2', 'column_3'],
+            'ghi789' => ['column_4', 'column_5', 'column_6'],
+        ];
+        $this->assertEquals($expected, $result);
     }
 }
 

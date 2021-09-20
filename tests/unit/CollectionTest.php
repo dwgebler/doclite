@@ -3,6 +3,7 @@
 namespace Gebler\Doclite\Tests\unit;
 
 use Gebler\Doclite\Collection;
+use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Tests\fakes\FakeDatabase;
 use Gebler\Doclite\Tests\data\Person;
 
@@ -16,6 +17,7 @@ class CollectionTest extends TestCase
     protected function setUp(): void
     {
         $this->db = new FakeDatabase();
+        $this->db->setFtsEnabled(true);
         $this->collection = new Collection('test', $this->db);
     }
 
@@ -237,4 +239,68 @@ class CollectionTest extends TestCase
         $samePerson = $this->collection->findOneBy(["id" => "12345"], Person::class);
         $this->assertEquals($person, $samePerson);
     }
+
+    public function testSearchThrowsExceptionOnFtsNotEnabled()
+    {
+        $this->db->setFtsEnabled(false);
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_NO_FTS5);
+        $this->collection->search('foo', ['bar']);
+    }
+
+    public function testHasFulltextIndexReturnsTrueForExistingIndex()
+    {
+        $this->collection->getFullTextIndex('foo', 'bar');
+        $this->assertTrue($this->collection->hasFullTextIndex('bar', 'foo'));
+    }
+
+    public function testHasFulltextIndexThrowsExceptionOnFtsNotEnabled()
+    {
+        $this->db->setFtsEnabled(false);
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_NO_FTS5);
+        $this->collection->hasFullTextIndex('bar', 'foo');
+    }
+
+    public function testGetFulltextIndexThrowsExceptionOnFtsNotEnabled()
+    {
+        $this->db->setFtsEnabled(false);
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_NO_FTS5);
+        $this->collection->getFullTextIndex('foo', 'bar');
+    }
+
+    public function testHasFulltextIndexReturnsFalseForNonExistingIndex()
+    {
+        $this->assertFalse($this->collection->hasFullTextIndex('bar', 'foo'));
+    }
+
+    public function testGetFulltextIndexReturnsIndexHashForIndex()
+    {
+        $this->collection->getFullTextIndex('bar', 'baz');
+        $hash = $this->collection->getFullTextIndex('baz', 'bar');
+        $expected = '56fa8a3e46dd485eaeae3c8635d77260a15b404d59b4cfc8fd51ee1ccf27205e';
+        $this->assertSame($expected, $hash);
+    }
+
+    public function testGetFulltextIndexCreatesAndReturnsIndexHashForNewIndex()
+    {
+        $hash = $this->collection->getFullTextIndex('foo', 'bar');
+        $expected = '08f23ef9f1721663b87c5a98b90483ba79e95dfdb36f248d19c28b9b453eaff2';
+        $this->assertSame($expected, $hash);
+    }
+
+    public function testGetFulltextIndexDeletesExistingIndexForIndexIsSupersetOfExistingIndexFields()
+    {
+        $this->collection->getFullTextIndex('foo', 'bar');
+        $hashes = $this->db->scanFtsTables($this->collection->getName());
+        $this->assertArrayHasKey('08f23ef9f1721663b87c5a98b90483ba79e95dfdb36f248d19c28b9b453eaff2', $hashes);
+        $newHash = $this->collection->getFullTextIndex('baz', 'foo', 'bar');
+        $newHashes = $this->db->scanFtsTables($this->collection->getName());
+        $expected = [
+            $newHash => ['baz', 'foo', 'bar'],
+        ];
+        $this->assertTrue($expected === $newHashes);
+    }
+
 }

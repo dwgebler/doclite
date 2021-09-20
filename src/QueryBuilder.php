@@ -60,6 +60,10 @@ class QueryBuilder implements QueryBuilderInterface
      * @var array
      */
     private array $queryParameters = [];
+    /**
+     * @var array
+     */
+    private array $joins = [];
 
     /**
      * QueryBuilder constructor.
@@ -249,6 +253,73 @@ class QueryBuilder implements QueryBuilderInterface
     }
 
     /**
+     * @inheritdoc
+     */
+    public function search(
+        string $phrase,
+        array $fields,
+        ?string $className = null,
+        ?string $idField = null
+    ): iterable {
+        $hash = $this->collection->getFullTextIndex(...$fields);
+        $query = $this->getFullTextSearchQuery($phrase, $fields, $hash);
+        return $this->collection->executeDqlQuery(
+            $query,
+            $this->queryParameters,
+            false,
+            $className,
+            $idField
+        );
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function join(
+        Collection $collection,
+        string $field,
+        string $key,
+        bool $excludeField = false
+    ): QueryBuilderInterface {
+        $this->validateFieldName($field);
+        $this->validateFieldName($key);
+        $this->joins[] = [
+            'collection' => $collection->getName(),
+            'field' => $field,
+            'key' => $key,
+            'exclude' => $excludeField
+        ];
+        return $this;
+    }
+
+    /**
+     * Get search query
+     */
+    private function getFullTextSearchQuery(string $phrase, array $fields, string $hash): string
+    {
+        $phrases = [];
+        foreach ($fields as $field) {
+            if (!empty($phrase)) {
+                $ftsTerm = '"' . str_replace('"', '""', $phrase) . '"';
+                $phrases[] = strtolower($this->collection->getName()) . '_' . $field . ':' . $ftsTerm;
+            }
+        }
+        $phrase = implode(' OR ', $phrases);
+        $table = 'fts_' . strtolower($this->collection->getName()) . '_' . $hash;
+        $queryTemplate = "SELECT s.rowid, s.rank, {$this->collection->getName()}.json FROM {$table} s INNER JOIN " .
+            $this->collection->getName() . " ON {$this->collection->getName()}.rowid = s.rowid %s WHERE {$table} " .
+            "MATCH ? AND %s ORDER BY s.rank LIMIT %d OFFSET %d;";
+
+        $this->queryParameters = [$phrase];
+        $treePart = '';
+        $wherePart = $this->getWhereCondition($treePart);
+        $limitPart = $this->queryConditions['limit'];
+        $offsetPart = $this->queryConditions['offset'];
+
+        return sprintf($queryTemplate, $treePart, $wherePart, $limitPart, $offsetPart);
+    }
+
+    /**
      * @inheritDoc
      */
     public function fetchArray(?string $className = null, ?string $idField = null): array
@@ -413,24 +484,70 @@ class QueryBuilder implements QueryBuilderInterface
     }
 
     /**
+     * Get the column to select as primary query result, including any joins as necessary.
+     * @param ?string $treePart
+     * @param ?string $wherePart
+     * @return string
+     */
+    private function getSelectColumn(?string &$treePart = null, ?string &$wherePart = null): string
+    {
+        if (is_null($treePart)) {
+            $treePart = '';
+        }
+        if (is_null($wherePart)) {
+            $wherePart = '';
+        }
+        $default = sprintf('"%1$s".json', $this->collection->getName());
+        $select = null;
+        if (!empty($this->joins)) {
+            $select = "json_set({$default}%s) AS json";
+            $queryPart = '';
+            $joinCounter = 1;
+            foreach ($this->joins as $join) {
+                $jsonPart = sprintf('json(j%d.json)', $joinCounter);
+                if ($join['exclude']) {
+                    $jsonPart = sprintf("json_remove(%s, '$.%s')", $jsonPart, $join['field']);
+                }
+                $queryPart .= sprintf(
+                    ", '$.%s', json(json_group_array(DISTINCT %s))",
+                    $join['collection'],
+                    $jsonPart
+                );
+                $treePart .= sprintf(', "%s" AS j%d', $join['collection'], $joinCounter);
+                $wherePart .= sprintf(
+                    " AND (json_extract(j%d.json,'$.%s') = json_extract(%s.json, '$.%s'))",
+                    $joinCounter,
+                    $join['field'],
+                    $this->collection->getName(),
+                    $join['key']
+                );
+                $joinCounter += 1;
+            }
+            $select = sprintf($select, $queryPart);
+        }
+        return $select ?? $default;
+    }
+
+    /**
      * Get a SELECT query string with placeholders.
      * @return string
      */
     private function getSelectQuery(): string
     {
         $this->queryParameters = [];
-        $baseSelect = sprintf('SELECT DISTINCT "%1$s".ROWID, "%1$s".json FROM "%1$s"', $this->collection->getName());
+        $baseSelect = sprintf('SELECT DISTINCT "%1$s".ROWID, %%s FROM "%1$s"', $this->collection->getName());
         $queryTemplate = $baseSelect . '%s WHERE %s ORDER BY %s LIMIT %d OFFSET %d;';
         $treePart = '';
         $wherePart = $this->getWhereCondition($treePart);
         $limitPart = $this->queryConditions['limit'];
         $offsetPart = $this->queryConditions['offset'];
+        $selectColumn = $this->getSelectColumn($treePart, $wherePart);
 
         $orderPart = $this->forgeOrderClause();
         if (empty($orderPart)) {
             $orderPart = sprintf('"%s".ROWID', $this->collection->getName());
         }
 
-        return sprintf($queryTemplate, $treePart, $wherePart, $orderPart, $limitPart, $offsetPart);
+        return sprintf($queryTemplate, $selectColumn, $treePart, $wherePart, $orderPart, $limitPart, $offsetPart);
     }
 }

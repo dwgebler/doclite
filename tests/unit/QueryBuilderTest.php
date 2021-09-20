@@ -260,4 +260,32 @@ class QueryBuilderTest extends TestCase
         $this->assertEquals(['bar'], $this->queries['select'][1]['params']);
         $this->assertEquals(['bar'], $this->queries['delete'][0]['params']);
     }
+
+    public function testJoinWithExcludeJoiningFieldGeneratesJsonRemoveSql()
+    {
+        $joinCollection = $this->createMock(Collection::class);
+        $joinCollection->method('getName')->wilLReturn('foobar');
+        $query = $this->builder->join($joinCollection, 'user_id', 'id', true);
+        $query->fetchArray();
+        $expected = "json_set(\"test\".json, '$.foobar', json(json_group_array(DISTINCT json_remove(json(j1.json), '$.user_id')))) AS json FROM \"test\", \"foobar\" AS j1 WHERE 1 AND (json_extract(j1.json,'$.user_id') = json_extract(test.json, '$.id'))";
+        $this->assertSelectQueryContains($expected);
+    }
+
+    public function testJoinGeneratesJsonSetSql()
+    {
+        $joinCollection = $this->createMock(Collection::class);
+        $joinCollection->method('getName')->wilLReturn('foobar');
+        $query = $this->builder->join($joinCollection, 'user_id', 'id', false);
+        $query->fetchArray();
+        $expected = "json_set(\"test\".json, '$.foobar', json(json_group_array(DISTINCT json(j1.json)))) AS json FROM \"test\", \"foobar\" AS j1 WHERE 1 AND (json_extract(j1.json,'$.user_id') = json_extract(test.json, '$.id'))";
+        $this->assertSelectQueryContains($expected);
+    }
+
+    public function testSearchGeneratesFulltextSql()
+    {
+        $this->collection->method('getFullTextIndex')->willReturn('abc123');
+        iterator_to_array($this->builder->search('text to search', ['foo', 'bar']));
+        $expected = "SELECT s.rowid, s.rank, test.json FROM fts_test_abc123 s INNER JOIN test ON test.rowid = s.rowid  WHERE fts_test_abc123 MATCH ?";
+        $this->assertSelectQueryContains($expected);
+    }
 }

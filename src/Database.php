@@ -84,6 +84,10 @@ abstract class Database implements DatabaseInterface
      * @var bool
      */
     protected bool $readOnly = false;
+    /**
+     * @var bool
+     */
+    protected bool $ftsEnabled = false;
 
     /**
      * Get product version
@@ -92,6 +96,15 @@ abstract class Database implements DatabaseInterface
     public function getVersion(): string
     {
         return self::VERSION;
+    }
+
+    /**
+     * Get FTS enabled
+     * @return bool
+     */
+    public function isFtsEnabled(): bool
+    {
+        return $this->ftsEnabled;
     }
 
     /**
@@ -418,7 +431,7 @@ abstract class Database implements DatabaseInterface
 
         if (empty($collections)) {
             $collections = array_column($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type ='table' " .
-                "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_cache';"), 'name');
+                "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'fts_%' AND name NOT LIKE '%_cache';"), 'name');
         }
 
         foreach ($collections as $i => $collection) {
@@ -990,6 +1003,179 @@ abstract class Database implements DatabaseInterface
             return false;
         }
         return $this->conn->exec(sprintf('DELETE FROM "%s"', $name)) !== 0;
+    }
+
+    /**
+     * Scan the database for full text search tables matching a collection name and return a
+     * dictionary of such table names converted to hash IDs and mapped to a list of indexed columns.
+     * @param string $table
+     * @return array
+     * @throws DatabaseException
+     */
+    public function scanFtsTables(string $table): array
+    {
+        if (!$this->isValidTableName($table)) {
+            return [];
+        }
+        $ftsTables = [];
+        $table = strtolower($table);
+
+        $tables = array_column($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type ='table' " .
+            "AND name LIKE 'fts_{$table}_%'"), 'name');
+
+        foreach ($tables as $fTable) {
+            $hashId = str_replace('fts_' . $table . '_', '', $fTable);
+            if (preg_match('/^fts_' . $table . '_([A-Za-z0-9])+$/', $fTable)) {
+                $columns = array_column($this->conn->queryAll(sprintf("PRAGMA table_info('%s')", $fTable)), 'name');
+                foreach ($columns as $column) {
+                    $ftsTables[$hashId][] = str_replace($table . '_', '', $column);
+                }
+            }
+        }
+
+        return $ftsTables;
+    }
+
+    /**
+     * Delete a full text index for a collection.
+     * @param string $table
+     * @param string $hashId
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function deleteFullTextIndex(string $table, string $hashId): bool
+    {
+        if (!$this->ftsEnabled) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
+        if ($this->readOnly) {
+            throw new DatabaseException(
+                'Cannot delete FT index in read only mode',
+                DatabaseException::ERR_READ_ONLY_MODE
+            );
+        }
+        if (!$this->isValidTableName($table)) {
+            return false;
+        }
+
+        $innerTableName = strtolower($table) . '_' . $hashId;
+        $ftsTable = 'fts_' . $innerTableName;
+        $viewName = 'v_' . $innerTableName;
+        $triggers = [
+            $ftsTable . '_ai',
+            $ftsTable . '_au',
+            $ftsTable . '_ad',
+        ];
+
+        $this->conn->exec("DROP VIEW IF EXISTS {$viewName};");
+        foreach ($triggers as $trigger) {
+            $this->conn->exec("DROP TRIGGER IF EXISTS {$trigger};");
+        }
+        $this->conn->exec("DROP TABLE IF EXISTS {$ftsTable};");
+        return true;
+    }
+
+    /**
+     * Create a full text index against the specified table and JSON fields.
+     * @param string $table
+     * @param string $ftsId A unique ID for this FTS table, comprising the hash of its field names
+     * @param string ...$fields
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool
+    {
+        if (!$this->ftsEnabled) {
+            throw new DatabaseException('FTS not enabled', DatabaseException::ERR_NO_FTS5);
+        }
+        if ($this->readOnly) {
+            throw new DatabaseException(
+                'Cannot create FT index in read only mode',
+                DatabaseException::ERR_READ_ONLY_MODE
+            );
+        }
+
+        if (!$this->isValidTableName($table)) {
+            return false;
+        }
+
+        $innerTableName = strtolower($table) . '_' . $ftsId;
+
+        $viewName = 'v_' . $innerTableName;
+        $ftsTableName = strtolower('fts_' . $innerTableName);
+
+        $existingFts = (bool)$this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
+            'type=\'table\' and name=?', $ftsTableName);
+
+        if ($existingFts) {
+            return true;
+        }
+
+        $fieldsMap = [];
+        foreach ($fields as $field) {
+            if (strlen($field) < 1 || strlen($field) > 64) {
+                return false;
+            }
+            if (!preg_match('/^[A-Za-z0-9_]*$/', $field)) {
+                return false;
+            }
+            $key = strtolower($table) . '_' . strtolower($field);
+            $fieldsMap[$key]['field'] = sprintf("json_extract(json, '$.%s')", $field);
+            $fieldsMap[$key]['trigger_new'] = sprintf("json_extract(new.json, '$.%s')", $field);
+            $fieldsMap[$key]['trigger_old'] = sprintf("json_extract(old.json, '$.%s')", $field);
+        }
+
+        $fieldsList = [];
+        foreach ($fieldsMap as $k => $v) {
+            $fieldsList[] = $v['field'] . ' AS ' . $k;
+        }
+        $fieldsQuery = implode(',', $fieldsList);
+
+        $viewCreated = $this->conn->exec(sprintf(
+            "CREATE VIEW %s AS SELECT ROWID AS id, %s FROM %s;",
+            $viewName,
+            $fieldsQuery,
+            $table
+        )) === 0;
+        if (!$viewCreated) {
+            return false;
+        }
+        $fieldColumnList = implode(',', array_keys($fieldsMap));
+        $ftsTableCreated = $this->conn->exec(sprintf(
+            "CREATE VIRTUAL TABLE %s USING fts5(%s, content='%s', content_rowid='id');",
+            $ftsTableName,
+            $fieldColumnList,
+            $viewName
+        )) === 1;
+        if (!$ftsTableCreated) {
+            return false;
+        }
+        $this->conn->exec(sprintf('INSERT INTO %1$s(%1$s) VALUES(\'rebuild\')', $ftsTableName));
+
+        $nTriggerColumnList = implode(',', array_column($fieldsMap, 'trigger_new'));
+        $oTriggerColumnList = implode(',', array_column($fieldsMap, 'trigger_old'));
+
+        $iTriggerTemplate = "CREATE TRIGGER {$ftsTableName}_ai AFTER INSERT ON $table BEGIN " .
+            "INSERT INTO $ftsTableName (rowid, " . $fieldColumnList . ") VALUES (new.rowid, %s); END;";
+        $iTriggerQuery = sprintf($iTriggerTemplate, $nTriggerColumnList);
+
+        $dTriggerTemplate = "CREATE TRIGGER {$ftsTableName}_ad AFTER DELETE ON $table BEGIN " .
+            "INSERT INTO $ftsTableName ($ftsTableName, rowid, " . $fieldColumnList . ") VALUES " .
+            "('delete', old.rowid, %s); END;";
+        $dTriggerQuery = sprintf($dTriggerTemplate, $oTriggerColumnList);
+
+        $uTriggerTemplate = "CREATE TRIGGER {$ftsTableName}_au AFTER UPDATE ON $table BEGIN " .
+            "INSERT INTO $ftsTableName ($ftsTableName, rowid, " . $fieldColumnList . ") VALUES " .
+            "('delete', old.rowid, %s); " .
+            "INSERT INTO $ftsTableName (rowid, " . $fieldColumnList . ") VALUES (new.rowid, %s); " .
+            "END;";
+        $uTriggerQuery = sprintf($uTriggerTemplate, $oTriggerColumnList, $nTriggerColumnList);
+
+        $this->conn->exec($iTriggerQuery);
+        $this->conn->exec($uTriggerQuery);
+        $this->conn->exec($dTriggerQuery);
+
+        return true;
     }
 
     /**

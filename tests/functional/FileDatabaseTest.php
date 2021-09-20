@@ -14,7 +14,7 @@ class FileDatabaseTest extends AbstractDatabaseTest
         $this->tempDir = sys_get_temp_dir();
         $tempName = uniqid("DOCLITE_FS_");
         $this->tempFile = $this->tempDir.\DIRECTORY_SEPARATOR.$tempName;
-        $this->db = new FileDatabase($this->tempFile);
+        $this->db = new FileDatabase($this->tempFile, false, true);
         parent::setup();
     }
 

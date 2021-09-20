@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- Added support for full text searches (see README docs).
+- Added support for joining collections (see README docs).
+- Added timeout option to `FileDatabase` and `MemoryDatabase` constructors to indicate 
+the SQLite busy timeout in seconds (how long to wait to acquire if DB is locked on connection).
+
 ## 1.0.5
 
   - No functional changes in this release, just changed the licence terms to the more 

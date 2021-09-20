@@ -20,6 +20,19 @@ interface DatabaseInterface
      */
     public function collection(string $name): Collection;
     /**
+     * Get FTS enabled.
+     * @return bool
+     */
+    public function isFtsEnabled(): bool;
+    /**
+     * Scan the database for full text search tables matching a collection name and return a
+     * dictionary of such table names converted to hash IDs and mapped to a list of indexed columns.
+     * @param string $table
+     * @return array
+     * @throws DatabaseException
+     */
+    public function scanFtsTables(string $table): array;
+    /**
      * Get read only mode.
      * @return bool
      */
@@ -160,4 +173,21 @@ interface DatabaseInterface
      * @throws DatabaseException
      */
     public function createIndex(string $table, string ...$fields): bool;
+    /**
+     * Create a full text index against the specified table and JSON fields.
+     * @param string $table
+     * @param string $ftsId A unique ID for this FTS table, comprising the hash of its field names
+     * @param string ...$fields
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool;
+    /**
+     * Delete a full text index against the specified table.
+     * @param string $table
+     * @param string $hashId
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function deleteFullTextIndex(string $table, string $hashId): bool;
 }
