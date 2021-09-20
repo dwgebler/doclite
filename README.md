@@ -366,8 +366,8 @@ match the extension of the filename(s) containing your data.
 When using the `csv` format, the first line of a CSV file is assumed to be a
 header line containing field names.
 
-`mode` can be either of the constants `Database::IMPORT_COLLECTIONS` or 
-`Database::IMPORT_DOCUMENTS`.
+`mode` can be either of the constants `Database::MODE_IMPORT_COLLECTIONS` or 
+`Database::MODE_IMPORT_DOCUMENTS`.
 
 Collection names are inferred from the subdirectory or file names. For example,
 `/path/to/collections/users.json` will import to the `users` collection, as will
@@ -408,8 +408,8 @@ document.
 
 `format` can be any of `json`, `yaml`, `xml`, or `csv`.
 
-`mode` can be either of the constants `Database::EXPORT_COLLECTIONS` or
-`Database::EXPORT_DOCUMENTS`.
+`mode` can be either of the constants `Database::MODE_EXPORT_COLLECTIONS` or
+`Database::MODE_EXPORT_DOCUMENTS`.
 
 `collections` can be a mix of strings of collection names and/or `Collection` 
 objects. If this is empty, all collections in the database will be exported.
