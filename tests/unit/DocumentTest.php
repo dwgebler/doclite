@@ -112,6 +112,15 @@ class DocumentTest extends TestCase
         $this->expectExceptionCode(DatabaseException::ERR_INVALID_UUID);
         $this->document->getTime();
     }
+    
+    public function testGetTimeExceptionOnNonUuidV1()
+    {
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_INVALID_UUID);
+
+        $this->document->setId('e30ee5de-f7a0-41f0-837c-d3cfec4c7cc7');
+        $this->document->getTime();
+    }
 
     public function testGetTimeReturnsTime()
     {
