@@ -105,6 +105,13 @@ class DocumentTest extends TestCase
         $this->expectExceptionCode(DatabaseException::ERR_INVALID_DATA);
         $this->document->setName(123);
     }
+    
+    public function testAddJsonSchemaExceptionOnInvalidJsonSchema()
+    {
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_INVALID_JSON_SCHEMA);
+        $this->document->addJsonSchema('a{');
+    }
 
     public function testGetTimeExceptionOnNonUuid()
     {
