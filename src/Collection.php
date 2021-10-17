@@ -329,20 +329,24 @@ class Collection implements QueryBuilderInterface
 
         foreach ($results as $result) {
             $data = $result['json'];
-            if ($class) {
-                $document = $this->deserializeClass(
-                    $data,
-                    $class,
-                    null,
-                    $classIdProperty
-                );
+            if ($data === null) {
+                yield from [];
             } else {
-                $document = $this->createDocument($data);
+                if ($class) {
+                    $document = $this->deserializeClass(
+                        $data,
+                        $class,
+                        null,
+                        $classIdProperty
+                    );
+                } else {
+                    $document = $this->createDocument($data);
+                }
+                if ($writeCache) {
+                    $this->setCache('dqlQuery', [$query, $parameters], $result);
+                }
+                yield $document;
             }
-            if ($writeCache) {
-                $this->setCache('dqlQuery', [$query, $parameters], $result);
-            }
-            yield $document;
         }
 
         if ($writeCache) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+- Fixed bug where invalid joins (for example, join on empty collection) could cause 
+`TypeError`.
+- Fixed incorrect version number in `Database::getVersion()`.
+
 ## 1.1.0
 
 - Added support for full text searches (see README docs).
