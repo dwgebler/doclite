@@ -129,7 +129,7 @@ This will include creating any parent directories as required.
 If you specify an existing directory without a filename, a default filename `data.db` will be used.
 
 ```php
-use Gebler\DocLite\{FileDatabase, MemoryDatabase};
+use Gebler\Doclite\{FileDatabase, MemoryDatabase};
 
 // To create or open an existing file database.
 $db = new FileDatabase('/path/to/db');
