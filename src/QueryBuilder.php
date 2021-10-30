@@ -118,10 +118,18 @@ class QueryBuilder implements QueryBuilderInterface
      * @param array $values
      * @return QueryBuilderInterface
      */
-    private function conditionalClause(string $type, string $field, string $condition, mixed $value, ...$values): QueryBuilderInterface
-    {
+    private function conditionalClause(
+        string $type,
+        string $field,
+        string $condition,
+        $value,
+        ...$values
+    ): QueryBuilderInterface {
         $values = [$value, ...$values];
-        $values = array_map(fn($v) => $v instanceof DateTimeInterface ? $v->format(DateTimeInterface::RFC3339) : $v, $values);
+        $values = array_map(
+            fn($v) => $v instanceof DateTimeInterface ? $v->format(DateTimeInterface::RFC3339) : $v,
+            $values
+        );
         $this->validateFieldName($field);
         list($operator, $valueModifier) = $this->validateCondition(strtoupper($condition));
         $isPath = substr_compare($field, '[]', -2) === 0;
