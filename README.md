@@ -788,6 +788,10 @@ $usersWithPostAccessToPagesApi = $users->where(
 $allUsersWithPostAccessToAnyApi = $users->where('api_access[]', '=', 'POST')
                                         ->fetch();
 
+$start = new DateTimeImmutable('2021-03-01 00:00:00');
+$end = new DateTime('2021-06-30');
+$usersWhoSignedUpBetweenMarchAndJune = $users->where('date', 'BETWEEN', $start, $end)->fetchArray();                                     
+
 /**
  * Nested queries are also possible.
  * To get all users where 
@@ -826,6 +830,8 @@ Advanced queries support the following operators:
 | \>       | Greater than |
 | <=        | Less than or equal |
 | \>=       | Greater than or equal |
+| BETWEEN  | Between two values, inclusive. Equivalent to >= AND <= |
+| NOT BETWEEN  | Not between two values, inclusive. Equivalent to < OR > |
 | STARTS   | Text starts with |
 | NOT STARTS  | Text does not start with |
 | ENDS     | Text ends with |
@@ -856,7 +862,7 @@ matching in `comments` for the same user ID will be included in the `users` docu
  * {"__id":"5", "user_id": "1", "comment":"Hello world!"} 
  * 
  * You can query the users collection with a join to retrieve an aggregated document like this:
- * {"__id":"1", "name":"John Smith", "comments":[{{"__id":"5", "comment":"Hello world!"}}]}
+ * {"__id":"1","name":"John Smith","comments":[{"__id":"5","comment":"Hello world!"}]}
  */
 $users = $db->collection('Users');
 $comments = $db->collection("Comments");

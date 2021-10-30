@@ -938,25 +938,25 @@ class Collection implements QueryBuilderInterface
     /**
      * @inheritDoc
      */
-    public function where(string $field, string $condition, $value = null): QueryBuilderInterface
+    public function where(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface
     {
-        return (new QueryBuilder($this))->where($field, $condition, $value);
+        return (new QueryBuilder($this))->where($field, $condition, $value, ...$values);
     }
 
     /**
      * @inheritDoc
      */
-    public function and(string $field, string $condition, $value = null): QueryBuilderInterface
+    public function and(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface
     {
-        return (new QueryBuilder($this))->and($field, $condition, $value);
+        return (new QueryBuilder($this))->and($field, $condition, $value, ...$values);
     }
 
     /**
      * @inheritDoc
      */
-    public function or(string $field, string $condition, $value = null): QueryBuilderInterface
+    public function or(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface
     {
-        return (new QueryBuilder($this))->or($field, $condition, $value);
+        return (new QueryBuilder($this))->or($field, $condition, $value, ...$values);
     }
 
     /**

@@ -288,4 +288,19 @@ class QueryBuilderTest extends TestCase
         $expected = "SELECT s.rowid, s.rank, test.json FROM fts_test_abc123 s INNER JOIN test ON test.rowid = s.rowid  WHERE fts_test_abc123 MATCH ?";
         $this->assertSelectQueryContains($expected);
     }
+
+    public function testBetweenWithMultipleParameters()
+    {
+        $this->builder->where('foo', 'BETWEEN', '2021-03-01', '2021-04-05')->fetchArray();
+        $expected = "SELECT DISTINCT \"test\".ROWID, \"test\".json FROM \"test\" WHERE ( (json_extract(\"test\".json, '$.foo') BETWEEN ? AND ?) ) ORDER BY \"test\".ROWID LIMIT -1 OFFSET 0;";
+        $this->assertEquals($expected, $this->queries['select'][0]['query']);
+    }
+
+    public function testDateTimeInterfaceConvertsToRfc3339()
+    {
+        $start = new \DateTimeImmutable('2021-03-01T09:00:00+00:00');
+        $end = new \DateTimeImmutable('2021-03-01T09:00:00+00:00');
+        $this->builder->where('foo', 'BETWEEN', $start, $end)->fetchArray();
+        $this->assertEquals([$start->format(DATE_RFC3339), $end->format(DATE_RFC3339)], $this->queries['select'][0]['params']);
+    }
 }
