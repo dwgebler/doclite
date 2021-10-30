@@ -23,25 +23,28 @@ interface QueryBuilderInterface
      * @param string $field
      * @param string $condition
      * @param mixed $value
+     * @param array $values Additional values for multi-value clauses
      * @return $this
      */
-    public function where(string $field, string $condition, $value): self;
+    public function where(string $field, string $condition, $value, ...$values): self;
     /**
      * And clause
      * @param string $field
      * @param string $condition
      * @param mixed $value
+     * @param array $values Additional values for multi-value clauses
      * @return $this
      */
-    public function and(string $field, string $condition, $value): self;
+    public function and(string $field, string $condition, $value, ...$values): self;
     /**
      * Or clause
      * @param string $field
      * @param string $condition
      * @param mixed $value
+     * @param array $values Additional values for multi-value clauses
      * @return $this
      */
-    public function or(string $field, string $condition, $value): self;
+    public function or(string $field, string $condition, $value, ...$values): self;
     /**
      * Limit clause. Null for no limit.
      * @param int|null $limit

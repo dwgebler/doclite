@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+- Added BETWEEN query operator, equivalent to `field >= {value1} AND field <= {value2}`.
+- Added native `DateTimeInterface` handler for query values.
+
 ## 1.1.1
 
 - Fixed bug where invalid joins (for example, join on empty collection) could cause 

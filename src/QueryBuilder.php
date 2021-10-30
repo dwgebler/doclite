@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Gebler\Doclite;
 
+use DateTimeInterface;
 use Gebler\Doclite\Exception\DatabaseException;
 use InvalidArgumentException;
 
@@ -40,6 +41,8 @@ class QueryBuilder implements QueryBuilderInterface
         'NOT MATCHES' => ['op' => 'NOT REGEXP', 'val' => null],
         'EMPTY' => ['op' => 'IS NULL', 'val' => ''],
         'NOT EMPTY' => ['op' => 'IS NOT NULL', 'val' => ''],
+        'BETWEEN' => ['op' => 'BETWEEN', 'val' => null],
+        'NOT BETWEEN' => ['op' => 'NOT BETWEEN', 'val' => null],
     ];
     /**
      * @var string
@@ -112,10 +115,21 @@ class QueryBuilder implements QueryBuilderInterface
      * @param string $field
      * @param string $condition
      * @param mixed $value
+     * @param array $values
      * @return QueryBuilderInterface
      */
-    private function conditionalClause(string $type, string $field, string $condition, $value): QueryBuilderInterface
-    {
+    private function conditionalClause(
+        string $type,
+        string $field,
+        string $condition,
+        $value,
+        ...$values
+    ): QueryBuilderInterface {
+        $values = [$value, ...$values];
+        $values = array_map(
+            fn($v) => $v instanceof DateTimeInterface ? $v->format(DateTimeInterface::RFC3339) : $v,
+            $values
+        );
         $this->validateFieldName($field);
         list($operator, $valueModifier) = $this->validateCondition(strtoupper($condition));
         $isPath = substr_compare($field, '[]', -2) === 0;
@@ -126,7 +140,7 @@ class QueryBuilder implements QueryBuilderInterface
         $queryCondition = [
             'field' => $field,
             'operator' => $operator,
-            'value' => $value,
+            'values' => $values,
             'path' => $isPath,
             'valueModifier' => $valueModifier,
             'condition' => $type,
@@ -169,25 +183,25 @@ class QueryBuilder implements QueryBuilderInterface
     /**
      * @inheritDoc
      */
-    public function where(string $field, string $condition, $value = null): QueryBuilderInterface
+    public function where(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface
     {
-        return $this->conditionalClause('AND', $field, $condition, $value);
+        return $this->conditionalClause('AND', $field, $condition, $value, ...$values);
     }
 
     /**
      * @inheritDoc
      */
-    public function and(string $field, string $condition, $value = null): QueryBuilderInterface
+    public function and(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface
     {
-        return $this->conditionalClause('AND', $field, $condition, $value);
+        return $this->conditionalClause('AND', $field, $condition, $value, ...$values);
     }
 
     /**
      * @inheritDoc
      */
-    public function or(string $field, string $condition, $value = null): QueryBuilderInterface
+    public function or(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface
     {
-        return $this->conditionalClause('OR', $field, $condition, $value);
+        return $this->conditionalClause('OR', $field, $condition, $value, ...$values);
     }
 
     /**
@@ -406,20 +420,29 @@ class QueryBuilder implements QueryBuilderInterface
         $rootTemplate = sprintf("%%s (json_extract(\"%s\".json, '$.%%s') %%s %%s) ", $this->collection->getName());
         $pathTemplate = "%1\$s (%2\$s.value %3\$s %4\$s) ";
 
-        if (is_array($condition['value'])) {
-            $condition['value'] = json_encode($condition['value']);
+        foreach ($condition['values'] as &$value) {
+            if (is_array($value)) {
+                $value = json_encode($value);
+            }
+            // Again, SQLite's json_extract() on a single boolean
+            // value gets converted to 1 or 0, not true or false.
+            if (is_bool($value)) {
+                $value = (int)$value;
+            }
         }
-        // Again, SQLite's json_extract() on a single boolean
-        // value gets converted to 1 or 0, not true or false.
-        if (is_bool($condition['value'])) {
-            $condition['value'] = (int)$condition['value'];
-        }
+        unset($value);
+
         $parameterPart = '?';
+        if (count($condition['values']) > 1) {
+            $parameterPart = implode(' AND ', array_fill(0, count($condition['values']), '?'));
+        }
         if ($condition['valueModifier'] === '') {
             $parameterPart = '';
         } else {
-            $this->queryParameters[] = $condition['valueModifier'] ?
-                sprintf($condition['valueModifier'], $condition['value']) : $condition['value'];
+            foreach ($condition['values'] as $value) {
+                $this->queryParameters[] = $condition['valueModifier'] ?
+                    sprintf($condition['valueModifier'], $value) : $value;
+            }
         }
 
         if (!$condition['path']) {
