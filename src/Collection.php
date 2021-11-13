@@ -829,7 +829,7 @@ class Collection implements QueryBuilderInterface
             // it's actually more efficient than decoding the whole blob to check for a key.
             if (strpos($json, '{') === 0) {
                 if (strpos($json, '"' . Database::ID_FIELD . '":') === false) {
-                    $json = '{"' . Database::ID_FIELD . '":"' . $id . '",' . substr($json, 1);
+                    $json = '{"' . Database::ID_FIELD . '":' . json_encode($id) . ',' . substr($json, 1);
                 }
             }
         }
