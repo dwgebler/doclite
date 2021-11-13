@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3
+
+- Fixed bug where documents mapped to custom classes do not encode internal ID field correctly 
+if the ID contains escapable characters.
+
 ## 1.1.2
 
 - Added BETWEEN query operator, equivalent to `field >= {value1} AND field <= {value2}`.
