@@ -99,14 +99,14 @@ class DatabaseConnectionTest extends TestCase
         $this->assertSame('abc', $result);
     }
 
-    public function testReplaceFloatPlaceholderInQueryWithJsonWrap()
+    public function testReplaceFloatPlaceholderInQueryWithCastRealJsonWrap()
     {
         $this->pdo->setError(true);
         try {
             $this->conn->valueQuery('SELECT foo FROM bar WHERE ? = ?', 'baz', 1.25);
         } catch (DatabaseException $e) {
             $query = $this->pdo->getLastQuery();
-            $this->assertSame('SELECT foo FROM bar WHERE ? = json(?)', $query);
+            $this->assertSame('SELECT foo FROM bar WHERE ? = cast(json(?) as real)', $query);
             return;
         }
         $this->fail('Expected DatabaseException did not occur');

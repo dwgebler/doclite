@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.4
+
+- Fixed bug where floating point values in QueryBuilder queries incorrectly fail to match in database.
+
 ## 1.1.3
 
 - Fixed bug where documents mapped to custom classes do not encode internal ID field correctly 
