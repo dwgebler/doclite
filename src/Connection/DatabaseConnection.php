@@ -103,8 +103,11 @@ class DatabaseConnection
             function ($matches) use ($params, &$replaceCount) {
                 $replaceCount += 1;
                 $value = $params[$replaceCount - 1];
-                if (is_bool($value) || is_float($value)) {
+                if (is_bool($value)) {
                     return 'json(?)';
+                }
+                if (is_float($value)) {
+                    return 'cast(json(?) as real)';
                 }
                 return '?';
             },

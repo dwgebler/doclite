@@ -16,6 +16,14 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->db->createTable('test');
     }
 
+    public function testFloatInExecuteDqlQueryReturnsMatchingDocuments()
+    {
+        $this->db->insert('test', '{"foo":1.145}');
+        $query = 'SELECT DISTINCT "test".ROWID, "test".json FROM "test" WHERE ( (json_extract("test".json, \'$.foo\') = ?) ) ORDER BY "test".ROWID LIMIT -1 OFFSET 0;';
+        $result = iterator_to_array($this->db->executeDqlQuery($query, [1.145]));
+        $this->assertEquals($result[0]['json'], '{"foo":1.145}');
+    }
+
     public function testFind()
     {
         $this->db->insert('test', '{"foo": "baz"}');
