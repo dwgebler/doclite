@@ -21,11 +21,13 @@ class FakePDO extends \PDO
         $this->stmt = $stmt;
     }
 
+    #[\ReturnTypeWillChange]
     public function inTransaction()
     {
         return $this->isInTransaction;
     }
 
+    #[\ReturnTypeWillChange]
     public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs)
     {
         if ($this->error) {
@@ -34,6 +36,7 @@ class FakePDO extends \PDO
         return $this->stmt;
     }
 
+    #[\ReturnTypeWillChange]
     public function exec(string $statement)
     {
         if ($this->error) {
@@ -42,11 +45,13 @@ class FakePDO extends \PDO
         return 1;
     }
 
+    #[\ReturnTypeWillChange]
     public function getLastQuery()
     {
         return $this->lastQuery;
     }
 
+    #[\ReturnTypeWillChange]
     public function prepare(string $statement, array $driver_options = [])
     {
         $this->lastQuery = $statement;
@@ -56,6 +61,7 @@ class FakePDO extends \PDO
         return $this->stmt;
     }
 
+    #[\ReturnTypeWillChange]
     public function beginTransaction()
     {
         if (!$this->isInTransaction) {
@@ -65,6 +71,7 @@ class FakePDO extends \PDO
         return false;
     }
 
+    #[\ReturnTypeWillChange]
     public function commit()
     {
         if ($this->isInTransaction) {
@@ -74,6 +81,7 @@ class FakePDO extends \PDO
         return false;
     }
 
+    #[\ReturnTypeWillChange]
     public function rollBack()
     {
         if ($this->isInTransaction) {
