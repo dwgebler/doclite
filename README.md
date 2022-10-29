@@ -244,8 +244,6 @@ feature requires SQLite to have been compiled with the [FTS5 extension](https://
   is how long the connection should wait if the underlying SQLite database is locked.
 - A [PSR-3 Logger](https://www.php-fig.org/psr/psr-3/) instance to use for logging database events.
 
-```php
-
 The path supplied to `FileDatabase` can be a relative or absolute path which is any of:
 
 - An existing directory with read and write access.
