@@ -11,7 +11,7 @@ A powerful PHP NoSQL document store built on top of SQLite.
 - [The Database](#the-database)
   - [Creating a memory database](#creating-a-memory-database)
   - [Creating a file database](#creating-a-file-database)
-  - [Error Handling](#error-handling)
+  - [Error Handling & Logging](#error-handling--logging)
   - [Import and export data](#import-and-export-data)
     - [Importing Data](#importing-data)
     - [Exporting data](#exporting-data)
@@ -308,8 +308,6 @@ These will be logged with a `warning` level.
 As long as a `LoggerInterface` instance is set on a database, any exceptions will also be logged at the `error` level.
 
 You can disable logging by calling `$database->disableQueryLogging()` or `$database->disableSlowQueryLogging()`.
-
-```php
 
 DocLite primarily throws a `DatabaseException` when any error occurs. This is true across 
 the `Database`, `Collection` and `Document` types. A `Database` exception will 
