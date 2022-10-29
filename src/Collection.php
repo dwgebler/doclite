@@ -111,7 +111,7 @@ class Collection implements QueryBuilderInterface
             self::$serializer = new Serializer(self::$normalizers, self::$encoders);
             self::$serializerInitialized = true;
         }
-        
+
         $this->name = $name;
         $this->db = $db;
         if (!self::$accessorsInitialized) {
