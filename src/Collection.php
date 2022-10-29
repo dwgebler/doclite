@@ -483,7 +483,7 @@ class Collection implements QueryBuilderInterface
         }
 
         if ($customIdProperty) {
-            $this->nameConverter->setCustomId($classIdProperty);
+            self::$nameConverter->setCustomId($classIdProperty);
         }
 
         try {
@@ -508,7 +508,7 @@ class Collection implements QueryBuilderInterface
         }
 
         if ($customIdProperty) {
-            $this->nameConverter->resetCustomId();
+            self::$nameConverter->resetCustomId();
         }
 
         try {

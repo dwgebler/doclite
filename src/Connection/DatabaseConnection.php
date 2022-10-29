@@ -243,8 +243,8 @@ class DatabaseConnection
             $stmt->closeCursor();
             return $result;
         } catch (PDOException $e) {
-            // If the PDOException is that a unique index constraint has failed, extract the field name(s) from the index
-            // name, which is in the form idx_[collection]_[field1]_[field2]... and return it as a string.
+            // If the PDOException is that a unique index constraint has failed, extract the field name(s)
+            // from the index name, which is in the form idx_[collection]_[field1]_[field2]...
             if ($e->getCode() === '23000') {
                 $matches = [];
                 if (preg_match('/idx_([a-z0-9_]+)_([a-z0-9_]+)/', $e->getMessage(), $matches)) {

@@ -14,8 +14,8 @@ use Gebler\Doclite\Connection\DatabaseConnection;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Exception\IOException;
 use Gebler\Doclite\FileSystem\FileSystemInterface;
-
 use Psr\Log\LoggerInterface;
+
 use const ARRAY_FILTER_USE_KEY;
 use const DIRECTORY_SEPARATOR;
 
