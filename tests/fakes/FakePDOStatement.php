@@ -5,12 +5,21 @@
 
 namespace Gebler\Doclite\Tests\fakes;
 
+use ArrayIterator;
+use Iterator;
+use IteratorAggregate;
+
 /**
  * FakePDOStatement
  */
-class FakePDOStatement extends \PDOStatement
+class FakePDOStatement extends \PDOStatement implements IteratorAggregate
 {
     private array $result = [];
+
+    public function getIterator(): Iterator
+    {
+        return new ArrayIterator($this->result);
+    }
 
     public function setResult(array $data)
     {

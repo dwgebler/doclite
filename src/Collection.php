@@ -16,12 +16,14 @@ use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
 use Symfony\Component\Serializer\Encoder\CsvEncoder;
+use Symfony\Component\Serializer\Encoder\EncoderInterface;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Encoder\XmlEncoder;
 use Symfony\Component\Serializer\Encoder\YamlEncoder;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Uid\Uuid;
@@ -36,6 +38,10 @@ class Collection implements QueryBuilderInterface
      */
     private static bool $accessorsInitialized = false;
     /**
+     * @var bool
+     */
+    private static bool $serializerInitialized = false;
+    /**
      * @var PropertyAccessor
      */
     private static PropertyAccessor $sensitiveAccessor;
@@ -43,6 +49,14 @@ class Collection implements QueryBuilderInterface
      * @var PropertyAccessor
      */
     private static PropertyAccessor $insensitiveAccessor;
+    /**
+     * @var array<EncoderInterface>
+     */
+    private static array $encoders;
+    /**
+     * @var array<NormalizerInterface>
+     */
+    private static array $normalizers;
     /**
      * @var DatabaseInterface
      */
@@ -62,11 +76,11 @@ class Collection implements QueryBuilderInterface
     /**
      * @var Serializer
      */
-    private Serializer $serializer;
+    private static Serializer $serializer;
     /**
      * @var DocLiteNameConverter
      */
-    private DocLiteNameConverter $nameConverter;
+    private static DocLiteNameConverter $nameConverter;
     /**
      * @var array
      */
@@ -81,19 +95,23 @@ class Collection implements QueryBuilderInterface
     public function __construct(string $name, DatabaseInterface $db)
     {
         $name = strtolower($name);
-        $this->nameConverter = new DocLiteNameConverter();
-        $encoders = [
-            new JsonEncoder(),
-            new XmlEncoder(),
-            new YamlEncoder(),
-            new CsvEncoder(),
-        ];
-        $normalizers = [
-            new DateTimeNormalizer(),
-            new ObjectNormalizer(null, $this->nameConverter, null, new ReflectionExtractor()),
-            new ArrayDenormalizer(),
-        ];
-        $this->serializer = new Serializer($normalizers, $encoders);
+        if (!self::$serializerInitialized) {
+            self::$nameConverter = new DocLiteNameConverter();
+            self::$encoders = [
+                new JsonEncoder(),
+                new XmlEncoder(),
+                new YamlEncoder(),
+                new CsvEncoder(),
+            ];
+            self::$normalizers = [
+                new DateTimeNormalizer(),
+                new ObjectNormalizer(null, self::$nameConverter, null, new ReflectionExtractor()),
+                new ArrayDenormalizer(),
+            ];
+            self::$serializer = new Serializer(self::$normalizers, self::$encoders);
+            self::$serializerInitialized = true;
+        }
+
         $this->name = $name;
         $this->db = $db;
         if (!self::$accessorsInitialized) {
@@ -135,7 +153,7 @@ class Collection implements QueryBuilderInterface
      */
     public function getSerializer(): Serializer
     {
-        return $this->serializer;
+        return self::$serializer;
     }
 
     /**
@@ -248,6 +266,20 @@ class Collection implements QueryBuilderInterface
     }
 
     /**
+     * Create a unique index on a document field.
+     * @param string ...$fields
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function addUniqueIndex(string ...$fields): bool
+    {
+        if ($this->db->isReadOnly()) {
+            return false;
+        }
+        return $this->db->createIndex($this->name, true, ...$fields);
+    }
+
+    /**
      * Create an index on a document field in a collection.
      * @param string ...$fields
      * @return bool
@@ -258,7 +290,7 @@ class Collection implements QueryBuilderInterface
         if ($this->db->isReadOnly()) {
             return false;
         }
-        return $this->db->createIndex($this->name, ...$fields);
+        return $this->db->createIndex($this->name, false, ...$fields);
     }
 
     /**
@@ -363,13 +395,13 @@ class Collection implements QueryBuilderInterface
      */
     private function getCache(string $type, $data): iterable
     {
-        $serialized = $this->serializer->serialize($data, 'json');
+        $serialized = self::$serializer->serialize($data, 'json');
         $cacheKey = hash('sha256', $serialized);
         $expiryDate = $this->cacheLifetime > 0 ? new DateTimeImmutable() : null;
         $results = $this->db->getCache($this->getCacheName(), $type, $cacheKey, $expiryDate);
         foreach ($results as $result) {
             if (is_string($result)) {
-                yield $this->serializer->decode($result, 'json');
+                yield self::$serializer->decode($result, 'json');
             } else {
                 yield $result;
             }
@@ -391,8 +423,8 @@ class Collection implements QueryBuilderInterface
         }
 
         $expiryDate = null;
-        $serializedQuery = $this->serializer->serialize($queryData, 'json');
-        $cacheData = $this->serializer->encode($resultData, 'json');
+        $serializedQuery = self::$serializer->serialize($queryData, 'json');
+        $cacheData = self::$serializer->encode($resultData, 'json');
         $cacheKey = hash('sha256', $serializedQuery);
         $dataKey = hash('sha256', $cacheData);
         $hasExpiry = $this->cacheLifetime > 0;
@@ -437,7 +469,7 @@ class Collection implements QueryBuilderInterface
         }
 
         if (!$documentId) {
-            $decoded = $this->serializer->decode($json, 'json');
+            $decoded = self::$serializer->decode($json, 'json');
             $documentId = $decoded[Database::ID_FIELD] ?? null;
             if ($documentId === null) {
                 throw new DatabaseException(
@@ -451,11 +483,11 @@ class Collection implements QueryBuilderInterface
         }
 
         if ($customIdProperty) {
-            $this->nameConverter->setCustomId($classIdProperty);
+            self::$nameConverter->setCustomId($classIdProperty);
         }
 
         try {
-            $deserialized = $this->serializer->deserialize(
+            $deserialized = self::$serializer->deserialize(
                 $json,
                 $className,
                 'json'
@@ -476,7 +508,7 @@ class Collection implements QueryBuilderInterface
         }
 
         if ($customIdProperty) {
-            $this->nameConverter->resetCustomId();
+            self::$nameConverter->resetCustomId();
         }
 
         try {
@@ -513,7 +545,7 @@ class Collection implements QueryBuilderInterface
      */
     private function createDocument(string $json): Document
     {
-        return new Document($this->serializer->decode($json, 'json'), $this);
+        return new Document(self::$serializer->decode($json, 'json'), $this);
     }
 
     /**
@@ -815,12 +847,12 @@ class Collection implements QueryBuilderInterface
             $id = $this->getDocumentId($document);
         }
         if ($document instanceof Document) {
-            $json = $this->serializer->serialize(
+            $json = self::$serializer->serialize(
                 $document->getData(),
                 'json'
             );
         } else {
-            $json = $this->serializer->serialize(
+            $json = self::$serializer->serialize(
                 $document,
                 'json',
                 [AbstractNormalizer::IGNORED_ATTRIBUTES => $ignoreFields]
@@ -885,7 +917,7 @@ class Collection implements QueryBuilderInterface
             }
 
             $data = [Database::ID_FIELD => $id];
-            $json = $this->serializer->encode($data, 'json');
+            $json = self::$serializer->encode($data, 'json');
             $this->db->insert($this->name, $json);
 
             if ($class) {

@@ -16,6 +16,15 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->db->createTable('test');
     }
 
+    public function testUniqueIndexThrowsExceptionOnDuplicateDocumentFieldValue()
+    {
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionMessage('UNIQUE constraint failed: test.id');
+        $this->db->createIndex('test', true, 'id');
+        $this->db->insert('test', "{\"id\": \"1\"}");
+        $this->db->insert('test', "{\"id\": \"1\"}");
+    }
+
     public function testFloatInExecuteDqlQueryReturnsMatchingDocuments()
     {
         $this->db->insert('test', '{"foo":1.145}');
@@ -56,7 +65,7 @@ abstract class AbstractDatabaseTest extends TestCase
     public function testCreateIndex()
     {
         $this->assertTrue(
-            $this->db->createIndex('test', 'foobar')
+            $this->db->createIndex('test', false, 'foobar')
         );
     }
 

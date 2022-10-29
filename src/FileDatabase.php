@@ -13,6 +13,7 @@ use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Exception\IOException;
 use Gebler\Doclite\FileSystem\FileSystem;
 use Gebler\Doclite\FileSystem\FileSystemInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * FileDatabase
@@ -31,6 +32,7 @@ class FileDatabase extends Database
      * @param bool $readOnly Open DB in read only mode
      * @param bool $ftsEnabled Whether to enable full text search support (requires FTS5 extension)
      * @param int $timeout Max time in seconds to obtain a lock
+     * @param LoggerInterface|null $logger
      * @param DatabaseConnection|null $dbConnection
      * @param FileSystemInterface|null $fileSystem
      * @throws DatabaseException if DB connection cannot be established
@@ -41,13 +43,14 @@ class FileDatabase extends Database
         bool $readOnly = false,
         bool $ftsEnabled = false,
         int $timeout = 1,
+        ?LoggerInterface $logger = null,
         ?DatabaseConnection $dbConnection = null,
         ?FileSystemInterface $fileSystem = null
     ) {
         $this->fileSystem = $fileSystem ?? new FileSystem();
         $validatedPath = $this->validatePath($path);
         $dsn = 'sqlite:' . $validatedPath;
-        $this->conn = $dbConnection ?? new DatabaseConnection($dsn, $readOnly, $timeout, $ftsEnabled);
+        $this->conn = $dbConnection ?? new DatabaseConnection($dsn, $readOnly, $timeout, $ftsEnabled, $logger);
         $this->readOnly = $readOnly;
         $this->ftsEnabled = $ftsEnabled;
         $this->setJournalMode(self::MODE_JOURNAL_WAL);

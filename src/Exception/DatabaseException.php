@@ -33,6 +33,7 @@ class DatabaseException extends \Exception
     public const ERR_IN_TRANSACTION = 17;
     public const ERR_INVALID_TABLE = 18;
     public const ERR_NO_FTS5 = 19;
+    public const ERR_UNIQUE_CONSTRAINT = 20;
 
     private string $query;
     private array $params;

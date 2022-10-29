@@ -6,6 +6,7 @@ namespace Gebler\Doclite;
 
 use DateTimeImmutable;
 use Gebler\Doclite\Exception\DatabaseException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Database
@@ -168,11 +169,12 @@ interface DatabaseInterface
     /**
      * Create an index on a table for the specified JSON field(s).
      * @param string $table
+     * @param bool $unique Unique index
      * @param string ...$fields
      * @return bool
      * @throws DatabaseException
      */
-    public function createIndex(string $table, string ...$fields): bool;
+    public function createIndex(string $table, bool $unique, string ...$fields): bool;
     /**
      * Create a full text index against the specified table and JSON fields.
      * @param string $table
@@ -190,4 +192,57 @@ interface DatabaseInterface
      * @throws DatabaseException
      */
     public function deleteFullTextIndex(string $table, string $hashId): bool;
+    /**
+     * Set the database sync mode.
+     * @param int $mode
+     * @return bool
+     */
+    public function setSyncMode(int $mode): bool;
+    /**
+     * Set the database journal mode.
+     * @param string $mode
+     * @return bool
+     */
+    public function setJournalMode(string $mode): bool;
+    /**
+     * Get the database sync mode.
+     * @return int
+     */
+    public function getSyncMode(): int;
+    /**
+     * Get the database journal mode.
+     * @return string
+     */
+    public function getJournalMode(): string;
+    /**
+     * Optimize the database.
+     * @return bool
+     */
+    public function optimize(): bool;
+    /**
+     * Get the database version.
+     * @return string
+     */
+    public function getVersion(): string;
+    /**
+     * Enable full query logging.
+     */
+    public function enableQueryLogging(): void;
+    /**
+     * Disable full query logging.
+     */
+    public function disableQueryLogging(): void;
+    /**
+     * Enable slow query logging.
+     */
+    public function enableSlowQueryLogging(): void;
+    /**
+     * Disable slow query logging.
+     */
+    public function disableSlowQueryLogging(): void;
+    /**
+     * Set the logger.
+     * @param LoggerInterface $logger
+     */
+    public function setLogger(LoggerInterface $logger): void;
 }

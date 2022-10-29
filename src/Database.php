@@ -14,6 +14,7 @@ use Gebler\Doclite\Connection\DatabaseConnection;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Exception\IOException;
 use Gebler\Doclite\FileSystem\FileSystemInterface;
+use Psr\Log\LoggerInterface;
 
 use const ARRAY_FILTER_USE_KEY;
 use const DIRECTORY_SEPARATOR;
@@ -58,7 +59,7 @@ abstract class Database implements DatabaseInterface
      * Version number.
      * @var string
      */
-    private const VERSION = '1.1.5';
+    private const VERSION = '1.1.6';
     /**
      * DB connection
      * @var DatabaseConnection
@@ -127,7 +128,7 @@ abstract class Database implements DatabaseInterface
 
     /**
      * Set cache auto pruning
-     * @param bool
+     * @param bool $auto
      * @return self
      */
     public function setCacheAutoPrune(bool $auto): self
@@ -590,7 +591,7 @@ abstract class Database implements DatabaseInterface
      * @return void
      * @throws DatabaseException
      */
-    public function optimize()
+    public function optimize(): bool
     {
         if ($this->readOnly) {
             throw new DatabaseException('Cannot optimize in read only mode', DatabaseException::ERR_READ_ONLY_MODE);
@@ -605,6 +606,7 @@ abstract class Database implements DatabaseInterface
         $this->conn->exec('VACUUM;');
         $this->conn->exec('PRAGMA optimize;');
         $this->conn->exec('PRAGMA main.wal_checkpoint(TRUNCATE);');
+        return true;
     }
 
     /**
@@ -630,6 +632,7 @@ abstract class Database implements DatabaseInterface
         }
         $query = sprintf('UPDATE "%s" SET json=json_patch(json, ?) ' .
             'WHERE json_extract(json,\'$.%s\') = ?', $table, self::ID_FIELD);
+
         $updated = $this->conn->executePrepared($query, $json, $id);
         if ($updated === 1) {
             if (!$this->inTransaction) {
@@ -1185,7 +1188,7 @@ abstract class Database implements DatabaseInterface
      * @return bool
      * @throws DatabaseException
      */
-    public function createIndex(string $table, string ...$fields): bool
+    public function createIndex(string $table, bool $unique, string ...$fields): bool
     {
         if ($this->readOnly) {
             throw new DatabaseException('Cannot create index in read only mode', DatabaseException::ERR_READ_ONLY_MODE);
@@ -1194,6 +1197,8 @@ abstract class Database implements DatabaseInterface
         if (!$this->isValidTableName($table)) {
             return false;
         }
+
+        $createIndex = $unique ? 'CREATE UNIQUE INDEX' : 'CREATE INDEX';
 
         $fieldsMap = [];
         foreach ($fields as $field) {
@@ -1212,7 +1217,7 @@ abstract class Database implements DatabaseInterface
         $existingIndex = (bool)$this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
             'type=\'index\' and name=?', $indexName);
         if (!$existingIndex) {
-            return $this->conn->exec(sprintf("CREATE INDEX %s ON %s(%s)", $indexName, $table, $fieldsQuery)) === 0;
+            return $this->conn->exec(sprintf($createIndex . " %s ON %s(%s)", $indexName, $table, $fieldsQuery)) === 0;
         }
 
         return true;
@@ -1243,5 +1248,46 @@ abstract class Database implements DatabaseInterface
     public function executeDmlQuery(string $query, array $parameters): int
     {
         return $this->conn->executePrepared($query, ...$parameters);
+    }
+
+    /**
+     * Enable full query logging.
+     */
+    public function enableQueryLogging(): void
+    {
+        $this->conn->enableQueryLogging();
+    }
+
+    /**
+     * Disable full query logging.
+     */
+    public function disableQueryLogging(): void
+    {
+        $this->conn->disableQueryLogging();
+    }
+
+    /**
+     * Enable slow query logging.
+     */
+    public function enableSlowQueryLogging(): void
+    {
+        $this->conn->enableSlowQueryLogging();
+    }
+
+    /**
+     * Disable slow query logging.
+     */
+    public function disableSlowQueryLogging(): void
+    {
+        $this->conn->disableSlowQueryLogging();
+    }
+
+    /**
+     * Set the logger.
+     * @param LoggerInterface $logger
+     */
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->conn->setLogger($logger);
     }
 }

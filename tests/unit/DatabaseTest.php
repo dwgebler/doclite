@@ -21,9 +21,9 @@ class DatabaseTest extends TestCase
     {
         $this->conn = $this->createMock(DatabaseConnection::class);
         $this->fs = new FakeFileSystem();
-        $this->db = new MemoryDatabase(true, 1, $this->conn, $this->fs);
-        $this->readDb = $db = new FileDatabase(
-            '/foo/bar', true, true, 1, $this->conn, $this->fs);
+        $this->db = new MemoryDatabase(true, 1, null, $this->conn, $this->fs);
+        $this->readDb = new FileDatabase(
+            '/foo/bar', true, true, 1, null, $this->conn, $this->fs);
     }
 
     public function testGetSyncModeReturnsIntegerMode()
@@ -382,43 +382,43 @@ class DatabaseTest extends TestCase
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_READ_ONLY_MODE);
-        $this->readDb->createIndex('foo');
+        $this->readDb->createIndex('foo', false);
     }
 
     public function testCreateIndexReturnsFalseOnInvalidCacheTableName()
     {
-        $this->assertFalse($this->db->createIndex('CacheTable**Name'));
+        $this->assertFalse($this->db->createIndex('CacheTable**Name', false));
     }
 
 
     public function testCreateIndexReturnsFalseOnZeroLengthFieldName()
     {
-        $this->assertFalse($this->db->createIndex('foo', ''));
+        $this->assertFalse($this->db->createIndex('foo', false, ''));
     }
 
     public function testCreateIndexReturnsFalseOnFieldNameLongerThan64Chars()
     {
         $tooLong = 'this_field_name_is_far_too_long_to_be_accepted_as_a_valid_index_field_name';
-        $this->assertFalse($this->db->createIndex('foo', $tooLong));
+        $this->assertFalse($this->db->createIndex('foo', false, $tooLong));
     }
 
     public function testCreateIndexReturnsFalseOnInvalidFieldName()
     {
-        $this->assertFalse($this->db->createIndex('foo', 'Not! Valid field'));
+        $this->assertFalse($this->db->createIndex('foo', false, 'Not! Valid field'));
     }
 
     public function testCreateIndexReturnsTrueOnExistingIndex()
     {
         $this->conn->method('valueQuery')->willReturn('1');
-        $this->assertTrue($this->db->createIndex('foo', 'bar'));
+        $this->assertTrue($this->db->createIndex('foo', false, 'bar'));
     }
 
     public function testCreateIndexReturnsBooleanSuccessFlagFromConn()
     {
         $this->conn->method('valueQuery')->willReturn('');
         $this->conn->method('exec')->willReturnOnConsecutiveCalls(0, 1);
-        $this->assertTrue($this->db->createIndex('foo', 'bar'));
-        $this->assertFalse($this->db->createIndex('foo', 'bar'));
+        $this->assertTrue($this->db->createIndex('foo', false, 'bar'));
+        $this->assertFalse($this->db->createIndex('foo', false, 'bar'));
     }
 
     public function testGetVersionReturnsSemverString()

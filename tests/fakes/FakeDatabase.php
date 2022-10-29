@@ -10,6 +10,7 @@ use Gebler\Doclite\Collection;
 use Gebler\Doclite\Database;
 use Gebler\Doclite\DatabaseInterface;
 use Gebler\Doclite\Exception\DatabaseException;
+use Psr\Log\LoggerInterface;
 
 /**
  * FakeDatabase
@@ -306,7 +307,7 @@ class FakeDatabase implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function createIndex(string $table, string ...$fields): bool
+    public function createIndex(string $table, bool $unique, string ...$fields): bool
     {
         return true;
     }
@@ -362,4 +363,58 @@ class FakeDatabase implements DatabaseInterface
     }
 
 
+    public function setSyncMode(int $mode): bool
+    {
+        return true;
+    }
+
+    public function setJournalMode(string $mode): bool
+    {
+        return true;
+    }
+
+    public function getSyncMode(): int
+    {
+        return 1;
+    }
+
+    public function getJournalMode(): string
+    {
+        return 'WAL';
+    }
+
+    public function optimize(): bool
+    {
+        return true;
+    }
+
+    public function getVersion(): string
+    {
+        return '1.0';
+    }
+
+    public function enableQueryLogging(): void
+    {
+        // TODO: Implement enableQueryLogging() method.
+    }
+
+    public function disableQueryLogging(): void
+    {
+        // TODO: Implement disableQueryLogging() method.
+    }
+
+    public function enableSlowQueryLogging(): void
+    {
+        // TODO: Implement enableSlowQueryLogging() method.
+    }
+
+    public function disableSlowQueryLogging(): void
+    {
+        // TODO: Implement disableSlowQueryLogging() method.
+    }
+
+    public function setLogger(LoggerInterface $logger): void
+    {
+        // TODO: Implement setLogger() method.
+    }
 }
