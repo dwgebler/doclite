@@ -37,6 +37,7 @@ A powerful PHP NoSQL document store built on top of SQLite.
   - [Join collections](#join-collections)
   - [Caching results](#caching-results)
   - [Index a collection](#index-a-collection)
+  - [Unique indexes](#unique-indexes)
   - [Delete a collection](#delete-a-collection)
   - [Collection transactions](#collection-transactions)
   - [Full text search](#full-text-search)
@@ -215,6 +216,9 @@ of your application scripts. Its constructor takes optional parameters:
   feature requires SQLite to have been compiled with the [FTS5 extension](https://www.sqlite.org/fts5.html).
 - an integer representing the maximum connection timeout in seconds (defaults to `1`) which
   is how long the connection should wait if the underlying SQLite database is locked.
+- A [PSR-3](https://www.php-fig.org/psr/psr-3/) compatible logger instance (defaults to `null`).
+
+```php
 
 ```php
 use Gebler\Doclite\MemoryDatabase;
@@ -222,7 +226,8 @@ use Gebler\Doclite\MemoryDatabase;
 $db = new MemoryDatabase();
 
 // With full text search enabled and a 2-second connection timeout
-$db = new MemoryDatabase(true, 2); 
+$logger = new \Monolog\Logger('my-logger');
+$db = new MemoryDatabase(true, 2, $logger); 
 ```
 
 ### Creating a file database
@@ -237,6 +242,9 @@ Optional parameters are:
 feature requires SQLite to have been compiled with the [FTS5 extension](https://www.sqlite.org/fts5.html).
 - an integer representing the maximum connection timeout in seconds (defaults to `1`) which
   is how long the connection should wait if the underlying SQLite database is locked.
+- A [PSR-3 Logger](https://www.php-fig.org/psr/psr-3/) instance to use for logging database events.
+
+```php
 
 The path supplied to `FileDatabase` can be a relative or absolute path which is any of:
 
@@ -259,8 +267,9 @@ $db = new FileDatabase('./data/mydb.db', true);
 // Open a new database called data.db in existing directory /home/data
 $db = new FileDatabase('/home/data');
 
-// All options - path, read-only mode, full text search and connection timeout
-$db = new FileDatabase('./data/mydb.db', false, true, 1);
+// All options - path, read-only mode, full text search, connection timeout and logger
+$logger = new \Monolog\Logger('mylogger');
+$db = new FileDatabase('./data/mydb.db', false, true, 1, $logger);
 
 // Or, in PHP 8, named parameters:
 $db = new FileDatabase(path: './data/mydb.db', readOnly: true, ftsEnabled: true);
@@ -288,7 +297,21 @@ try {
 }
 ```
 
-### Error Handling
+### Error Handling & Logging
+
+To enable logging queries and parameters in the full and final SQL sent to the database, pass a PSR-3 logger instance in to you `FileDatabase` or `MemoryDatabase` 
+either via the constructor or the `$database->setLogger(LoggerInterface $logger)` method at any time.
+
+Then call `$database->enableQueryLogging()` to enable logging of _all_ queries. These will be logged at the `debug` level.
+
+Or call `$database->enableSlowQueryLogging()` to enable logging of queries that take longer than 500ms. 
+These will be logged with a `warning` level.
+
+As long as a `LoggerInterface` instance is set on a database, any exceptions will also be logged at the `error` level.
+
+You can disable logging by calling `$database->disableQueryLogging()` or `$database->disableSlowQueryLogging()`.
+
+```php
 
 DocLite primarily throws a `DatabaseException` when any error occurs. This is true across 
 the `Database`, `Collection` and `Document` types. A `Database` exception will 
@@ -337,6 +360,7 @@ The full list of error codes are as follows:
 | ERR_IMPORT_DATA                  | Error importing data |
 | ERR_IN_TRANSACTION               | Attempting locking operation while in a transaction |
 | ERR_INVALID_TABLE                | Attempting to access invalid table |
+| ERR_UNIQUE_CONSTRAINT            | Attempting to insert a document with a unique field that already exists |
 
 ### Import and export data
 
@@ -933,13 +957,26 @@ document field.
 $userCollection->addIndex('email');
 ```
 
-To add a single index on multiple fields (as per a multicolumn index), 
+To add a single index on multiple fields (as per a multi-column index), 
 simply call `addIndex` with the additional field names as separate 
 parameters.
 
 ```php
 $userCollection->addIndex('first_name', 'last_name');
 ```
+
+### Unique Indexes
+
+You can also add a unique index which acts as a constraint on the field, ensuring 
+that no two documents in the collection can have the same value for that field or field combination.
+
+```php
+$userCollection->addUniqueIndex('email');
+```
+
+If you attempt to add a document to a collection with a unique index and a value
+that already exists in the collection, a `DatabaseException` will be thrown with the 
+code `DatabaseException::ERR_UNIQUE_CONSTRAINT`.
 
 > :bulb: **Note:** indexes are an advanced feature which work the same way they do 
 in any other SQLite database, the only difference being they are created 

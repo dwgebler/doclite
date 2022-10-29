@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.6
+
+- Added support for injecting a PSR-3 `LoggerInterface` on database connections, and
+  functions to log exceptions, all queries or slow queries (see README).
+- Added `Collection::addUniqueIndex` function to enable creation of unique indexes.
+
+## 1.1.5
+
+- Bumped some dependencies for compatibility with newer versions of PHP.
+
 ## 1.1.4
 
 - Fixed bug where floating point values in QueryBuilder queries incorrectly fail to match in database.

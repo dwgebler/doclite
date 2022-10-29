@@ -12,6 +12,7 @@ use Gebler\Doclite\Exception\DatabaseException;
 use PDO;
 use PDOException;
 use PDOStatement;
+use Psr\Log\LoggerInterface;
 
 /**
  * DatabaseConnection
@@ -44,6 +45,22 @@ class DatabaseConnection
      * @var bool
      */
     private bool $ftsEnabled = false;
+    /**
+     * @var LoggerInterface|null
+     */
+    private ?LoggerInterface $logger = null;
+    /**
+     * @var bool
+     */
+    private bool $queryLogging = false;
+    /**
+     * @var float
+     */
+    private float $queryLoggingThreshold = 0.5;
+    /**
+     * @var bool
+     */
+    private bool $slowQueryLogging = false;
 
     /**
      * Constructor.
@@ -51,6 +68,7 @@ class DatabaseConnection
      * @param bool $readOnly Open in read-only mdoe
      * @param int $timeout Max time in seconds to obtain a lock
      * @param bool $fts Flag to enable full text support (requires SQLite FTS5 extension)
+     * @param LoggerInterface|null $logger
      * @param PDO|null $conn
      * @throws DatabaseException on connection error
      */
@@ -59,6 +77,7 @@ class DatabaseConnection
         bool $readOnly = false,
         int $timeout = 1,
         bool $fts = false,
+        ?LoggerInterface $logger = null,
         ?PDO $conn = null
     ) {
         $this->dsn = $dsn;
@@ -66,6 +85,8 @@ class DatabaseConnection
         $this->timeout = $timeout;
         $this->conn = $conn;
         $this->ftsEnabled = $fts;
+        $this->logger = $logger;
+        $this->queryCache = [];
         $this->init();
     }
 
@@ -213,13 +234,37 @@ class DatabaseConnection
     public function executePrepared(string $query, ...$params): int
     {
         try {
+            $start = microtime(true);
             $stmt = $this->prepareQuery($query, $params);
             $stmt->execute();
+            $end = microtime(true);
+            $this->logSlowQuery($end - $start, $query, $params);
             $result = $stmt->rowCount();
             $stmt->closeCursor();
             return $result;
         } catch (PDOException $e) {
-            throw new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            // If the PDOException is that a unique index constraint has failed, extract the field name(s) from the index
+            // name, which is in the form idx_[collection]_[field1]_[field2]... and return it as a string.
+            if ($e->getCode() === '23000') {
+                $matches = [];
+                if (preg_match('/idx_([a-z0-9_]+)_([a-z0-9_]+)/', $e->getMessage(), $matches)) {
+                    $table = $matches[1];
+                    $field = $matches[2];
+                    $fields = explode('_', $field);
+                    $field = implode('.', $fields);
+                    $ex = new DatabaseException(
+                        'UNIQUE constraint failed: ' . $table . '.' . $field,
+                        DatabaseException::ERR_UNIQUE_CONSTRAINT,
+                        $e
+                    );
+                    $this->logException($ex);
+                    throw $ex;
+                }
+            } else {
+                $ex = new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+                $this->logException($ex);
+                throw $ex;
+            }
         }
     }
 
@@ -232,14 +277,19 @@ class DatabaseConnection
     public function exec(string $query): int
     {
         try {
+            $start = microtime(true);
             $affected = $this->conn->exec($query);
+            $end = microtime(true);
+            $this->logSlowQuery($end - $start, $query, []);
             // Shouldn't really happen in exception mode, but edge-cases...
             if ($affected === false) {
                 throw new DatabaseException('Error executing statement', DatabaseException::ERR_QUERY, null, $query);
             }
             return $affected;
         } catch (PDOException $e) {
-            throw new DatabaseException('Error executing statement', DatabaseException::ERR_QUERY, $e, $query);
+            $ex = new DatabaseException('Error executing statement', DatabaseException::ERR_QUERY, $e, $query);
+            $this->logException($ex);
+            throw $ex;
         }
     }
 
@@ -253,13 +303,18 @@ class DatabaseConnection
     public function valueQuery(string $query, ...$params): string
     {
         try {
+            $start = microtime(true);
             $stmt = $this->prepareQuery($query, $params);
             $stmt->execute();
+            $end = microtime(true);
+            $this->logSlowQuery($end - $start, $query, $params);
             $result = (string)$stmt->fetchColumn();
             $stmt->closeCursor();
             return $result;
         } catch (PDOException $e) {
-            throw new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            $ex = new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            $this->logException($ex);
+            throw $ex;
         }
     }
 
@@ -273,13 +328,18 @@ class DatabaseConnection
     public function queryAll(string $query, ...$params): array
     {
         try {
+            $start = microtime(true);
             $stmt = $this->prepareQuery($query, $params);
             $stmt->execute();
+            $end = microtime(true);
+            $this->logSlowQuery($end - $start, $query, $params);
             $results = $stmt->fetchAll();
             $stmt->closeCursor();
             return $results;
         } catch (PDOException $e) {
-            throw new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            $ex = new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            $this->logException($ex);
+            throw $ex;
         }
     }
 
@@ -293,14 +353,88 @@ class DatabaseConnection
     public function query(string $query, ...$params): iterable
     {
         try {
+            $start = microtime(true);
             $stmt = $this->prepareQuery($query, $params);
             $stmt->execute();
+            $end = microtime(true);
+            $this->logSlowQuery($end - $start, $query, $params);
             foreach ($stmt as $row) {
                 yield $row;
             }
             $stmt->closeCursor();
         } catch (PDOException $e) {
-            throw new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            $ex = new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            $this->logException($ex);
+            throw $ex;
+        }
+    }
+
+    /**
+     * Enable full query logging.
+     */
+    public function enableQueryLogging(): void
+    {
+        $this->queryLogging = true;
+    }
+    /**
+     * Disable full query logging.
+     */
+    public function disableQueryLogging(): void
+    {
+        $this->queryLogging = false;
+    }
+    /**
+     * Enable slow query logging.
+     */
+    public function enableSlowQueryLogging(): void
+    {
+        $this->slowQueryLogging = true;
+    }
+    /**
+     * Disable slow query logging.
+     */
+    public function disableSlowQueryLogging(): void
+    {
+        $this->slowQueryLogging = false;
+    }
+    /**
+     * Set the logger.
+     * @param LoggerInterface $logger
+     */
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+    }
+
+    private function logException(\Throwable $e): void
+    {
+        if ($this->logger) {
+            if ($e instanceof DatabaseException) {
+                $this->logger->error($e->getMessage(), [
+                    'query' => $e->getQuery(),
+                    'params' => $e->getParams(),
+                    'exception' => $e->getPrevious(),
+                ]);
+            } else {
+                $this->logger->error($e->getMessage(), [
+                    'exception' => $e,
+                ]);
+            }
+        }
+    }
+
+    private function logQuery(string $query, array $params): void
+    {
+        if ($this->queryLogging && $this->logger) {
+            $this->logger->debug(sprintf('Query: %s', $query), $params);
+        }
+    }
+
+    private function logSlowQuery(float $time, string $query, array $params)
+    {
+        $this->logQuery($query, $params);
+        if ($time > $this->queryLoggingThreshold && $this->slowQueryLogging && $this->logger) {
+            $this->logger->warning(sprintf('Slow query: %s (%s)', $time, $query), $params);
         }
     }
 
@@ -332,24 +466,30 @@ class DatabaseConnection
                 return preg_match('/' . $p . '/', $v);
             }, 2);
         } catch (PDOException $e) {
-            throw new DatabaseException(
+            $ex = new DatabaseException(
                 'Unable to initialize database connection',
                 DatabaseException::ERR_CONNECTION,
                 $e
             );
+            $this->logException($ex);
+            throw $ex;
         }
         $compileOptions = $this->conn->query('PRAGMA compile_options')->fetchAll(PDO::FETCH_COLUMN);
         if (!in_array('ENABLE_JSON1', $compileOptions)) {
-            throw new DatabaseException(
+            $ex = new DatabaseException(
                 'DocLite requires SQLite3 to be built with JSON1 extension',
                 DatabaseException::ERR_NO_JSON1
             );
+            $this->logException($ex);
+            throw $ex;
         }
         if ($this->ftsEnabled && !in_array('ENABLE_FTS5', $compileOptions)) {
-            throw new DatabaseException(
+            $ex = new DatabaseException(
                 'Full text search requires SQLite3 to be built with FTS5 extension',
                 DatabaseException::ERR_NO_FTS5
             );
+            $this->logException($ex);
+            throw $ex;
         }
     }
 }

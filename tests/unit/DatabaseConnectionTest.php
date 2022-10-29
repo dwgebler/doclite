@@ -8,12 +8,19 @@ use Gebler\Doclite\Tests\fakes\FakePDO;
 use Gebler\Doclite\Tests\fakes\FakePDOStatement;
 use PDOException;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class DatabaseConnectionTest extends TestCase
 {
     private $pdo;
     private $stmt;
     private $conn;
+    private $log;
+    private $logs = [
+        'warning' => [],
+        'debug' => [],
+        'error' => [],
+    ];
 
     protected function setUp(): void
     {
@@ -22,9 +29,29 @@ class DatabaseConnectionTest extends TestCase
         }
         $this->stmt = new FakePDOStatement();
         $this->pdo = new FakePDO($this->stmt);
+        $this->log = $this->createMock(LoggerInterface::class);
+        $this->log->method('debug')->willReturnCallback(function ($message, $params) {
+            $this->logs['debug'][] = ['message' => $message, 'params' => $params];
+        });
+        $this->log->method('warning')->willReturnCallback(function ($message, $params) {
+            $this->logs['warning'][] = ['message' => $message, 'params' => $params];
+        });
+        $this->log->method('error')->willReturnCallback(function ($message, $params) {
+            $this->logs['error'][] = ['message' => $message, 'params' => $params];
+        });
         $this->stmt->setResult(['ENABLE_JSON1', 'ENABLE_FTS5']);
-        $this->conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
+        $this->conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->log, $this->pdo);
         $this->stmt->setResult([]);
+    }
+
+    public function testEnableQueryLogWritesToLog(): void
+    {
+        $this->conn->enableQueryLogging();
+        $this->stmt->setResult([]);
+        iterator_to_array($this->conn->query('SELECT * FROM test WHERE foo = ?', 'bar'));
+        $this->assertNotEmpty($this->logs['debug']);
+        $this->assertEquals('Query: SELECT * FROM test WHERE foo = ?', $this->logs['debug'][0]['message']);
+        $this->assertEquals(['bar'], $this->logs['debug'][0]['params']);
     }
 
     public function testInitExceptionOnErrorCreatingFunction()
@@ -32,7 +59,7 @@ class DatabaseConnectionTest extends TestCase
         $this->pdo->setError(true);
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_CONNECTION);
-        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
+        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->log, $this->pdo);
     }
 
     public function testInitExceptionOnMissingJsonExtension()
@@ -40,7 +67,8 @@ class DatabaseConnectionTest extends TestCase
         $this->stmt->setResult([]);
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_NO_JSON1);
-        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
+        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->log, $this->pdo);
+        $x = 1;
     }
 
     public function testInitExceptionOnMissingFtsExtension()
@@ -48,7 +76,7 @@ class DatabaseConnectionTest extends TestCase
         $this->stmt->setResult(['ENABLE_JSON1']);
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_NO_FTS5);
-        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->pdo);
+        $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->log, $this->pdo);
     }
 
     public function testBeginTransactionTrueOnBeginTransaction()
