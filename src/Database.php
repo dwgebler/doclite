@@ -59,7 +59,7 @@ abstract class Database implements DatabaseInterface
      * Version number.
      * @var string
      */
-    private const VERSION = '1.1.6';
+    private const VERSION = '1.1.7';
     /**
      * DB connection
      * @var DatabaseConnection
@@ -628,27 +628,34 @@ abstract class Database implements DatabaseInterface
             return false;
         }
         if (!$this->inTransaction) {
-            $this->conn->beginTransaction();
+            $this->beginTransaction($table);
+        } else {
+            if ($this->transactionTable !== $table) {
+                throw new DatabaseException(
+                    sprintf('Cannot replace in table [%s] when transaction in progress [%s]', $table, $this->transactionTable),
+                    DatabaseException::ERR_IN_TRANSACTION
+                );
+            }
         }
         $query = sprintf('UPDATE "%s" SET json=json_patch(json, ?) ' .
             'WHERE json_extract(json,\'$.%s\') = ?', $table, self::ID_FIELD);
 
         $updated = $this->conn->executePrepared($query, $json, $id);
         if ($updated === 1) {
-            if (!$this->inTransaction) {
-                $this->conn->commit();
+            if ($this->inTransaction) {
+                $this->commit($table);
             }
             return true;
         } elseif ($updated === 0) {
-            $query = sprintf('INSERT INTO "%s" (json) VALUES (json(?))', $table);
+            $query = sprintf('INSERT OR IGNORE INTO "%s" (json) VALUES (json(?))', $table);
             $inserted = $this->conn->executePrepared($query, $json) === 1;
-            if (!$this->inTransaction) {
-                $this->conn->commit();
+            if ($this->inTransaction) {
+                $this->commit($table);
             }
             return $inserted;
         } else {
-            if (!$this->inTransaction) {
-                $this->conn->rollback();
+            if ($this->inTransaction) {
+                $this->rollback($table);
             }
             throw new DatabaseException(
                 'ID conflict; multiple rows would be updated',
@@ -797,8 +804,12 @@ abstract class Database implements DatabaseInterface
             count($criteria),
             '?'
         ));
+
         $criteriaValues = array_values($criteria);
         $whereClause = 'json_extract(json, %2$s)';
+        if (count($criteriaValues) > 1) {
+            $whereClause = 'json_doclite_unquote(' . $whereClause . ')';
+        }
         if (count($criteriaValues) === 1) {
             $whereClause = "json_array({$whereClause})";
         }
