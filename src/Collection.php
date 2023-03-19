@@ -135,7 +135,7 @@ class Collection implements QueryBuilderInterface
             $this->ftsIndexes = $this->db->scanFtsTables($this->name);
         }
 
-        $this->addIndex(Database::ID_FIELD);
+        $this->addUniqueIndex(Database::ID_FIELD);
     }
 
     /**
@@ -857,6 +857,10 @@ class Collection implements QueryBuilderInterface
                 'json',
                 [AbstractNormalizer::IGNORED_ATTRIBUTES => $ignoreFields]
             );
+
+            // Remove any escaped slashes from the resultant JSON
+            $json = str_replace('\/', '/', $json);
+
             // Set the internal ID field if not present. This is not as hacky as it looks;
             // it's actually more efficient than decoding the whole blob to check for a key.
             if (strpos($json, '{') === 0) {

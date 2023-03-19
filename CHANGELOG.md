@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7
+
+- Removes forward slash escaping in serialized JSON data and unquotes results of `json_extract` when finding by multiple fields. This fixes issue #26. 
+
 ## 1.1.6
 
 - Added support for injecting a PSR-3 `LoggerInterface` on database connections, and

@@ -266,6 +266,7 @@ class DatabaseConnection
                 throw $ex;
             }
         }
+        return 0;
     }
 
     /**
@@ -465,6 +466,12 @@ class DatabaseConnection
             $this->conn->sqliteCreateFunction('REGEXP', function ($p, $v) {
                 return preg_match('/' . $p . '/', $v);
             }, 2);
+            $this->conn->sqliteCreateFunction('JSON_DOCLITE_UNQUOTE', function ($v) {
+                // Unescape any special JSON characters
+                $v = str_replace(['\"', '\\\\', '\\/'], ['"', '\\', '/'], $v);
+                // Remove surrounding quotes
+                return trim($v, '"');
+            }, 1);
         } catch (PDOException $e) {
             $ex = new DatabaseException(
                 'Unable to initialize database connection',
