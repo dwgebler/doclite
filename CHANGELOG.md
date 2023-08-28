@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.8
+
+- Fixes #32 where JSON functions are now built in to SQLite 3.38.0 upwards and the check 
+for the JSON1 extension was failing. This is now fixed by checking the SQLite version too.
+
 ## 1.1.7
 
 - Removes forward slash escaping in serialized JSON data and unquotes results of `json_extract` when finding by multiple fields. This fixes issue #26. 
