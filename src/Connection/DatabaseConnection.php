@@ -481,14 +481,17 @@ class DatabaseConnection
             $this->logException($ex);
             throw $ex;
         }
+        $sqliteVersion = $this->conn->query('SELECT sqlite_version()')->fetchColumn();
         $compileOptions = $this->conn->query('PRAGMA compile_options')->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('ENABLE_JSON1', $compileOptions)) {
-            $ex = new DatabaseException(
-                'DocLite requires SQLite3 to be built with JSON1 extension',
-                DatabaseException::ERR_NO_JSON1
-            );
-            $this->logException($ex);
-            throw $ex;
+        if (version_compare($sqliteVersion, '3.38.0', '<')) {
+            if (!in_array('ENABLE_JSON1', $compileOptions)) {
+                $ex = new DatabaseException(
+                    'DocLite requires SQLite3 to be built with JSON1 extension',
+                    DatabaseException::ERR_NO_JSON1
+                );
+                $this->logException($ex);
+                throw $ex;
+            }
         }
         if ($this->ftsEnabled && !in_array('ENABLE_FTS5', $compileOptions)) {
             $ex = new DatabaseException(
