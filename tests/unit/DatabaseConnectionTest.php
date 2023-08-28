@@ -64,11 +64,10 @@ class DatabaseConnectionTest extends TestCase
 
     public function testInitExceptionOnMissingJsonExtension()
     {
-        $this->stmt->setResult([]);
+        $this->stmt->setResult(["3.37.0"]);
         $this->expectException(DatabaseException::class);
         $this->expectExceptionCode(DatabaseException::ERR_NO_JSON1);
         $conn = new DatabaseConnection('sqlite::memory:', false, 1, true, $this->log, $this->pdo);
-        $x = 1;
     }
 
     public function testInitExceptionOnMissingFtsExtension()
