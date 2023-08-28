@@ -632,7 +632,11 @@ abstract class Database implements DatabaseInterface
         } else {
             if ($this->transactionTable !== $table) {
                 throw new DatabaseException(
-                    sprintf('Cannot replace in table [%s] when transaction in progress [%s]', $table, $this->transactionTable),
+                    sprintf(
+                        'Cannot replace in table [%s] when transaction in progress [%s]',
+                        $table,
+                        $this->transactionTable
+                    ),
                     DatabaseException::ERR_IN_TRANSACTION
                 );
             }
