@@ -3,7 +3,7 @@
  * FakePDOStatement class.
  */
 
-namespace Gebler\Doclite\Tests\fakes;
+namespace Gebler\Doclite\Tests\Fakes;
 
 use ArrayIterator;
 use Iterator;

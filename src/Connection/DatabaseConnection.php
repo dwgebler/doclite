@@ -18,7 +18,7 @@ use Psr\Log\LoggerInterface;
 /**
  * DatabaseConnection
  */
-class DatabaseConnection
+final class DatabaseConnection implements DatabaseConnectionInterface
 {
     /**
      * SQLite DSN

@@ -11,6 +11,6 @@ namespace Gebler\Doclite\Exception;
 /**
  * IOException
  */
-class IOException extends \Exception
+final class IOException extends \Exception
 {
 }

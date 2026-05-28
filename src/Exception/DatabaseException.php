@@ -11,7 +11,7 @@ namespace Gebler\Doclite\Exception;
 /**
  * DatabaseException
  */
-class DatabaseException extends \Exception
+final class DatabaseException extends \Exception
 {
     public const ERR_CONNECTION = 0;
     public const ERR_QUERY = 1;

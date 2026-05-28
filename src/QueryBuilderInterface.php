@@ -72,7 +72,7 @@ interface QueryBuilderInterface
      * @param bool $excludeField Flag indicating whether the foreign field should be excluded from the resultant fields.
      * @return $this
      */
-    public function join(Collection $collection, string $field, string $key, bool $excludeField = false): self;
+    public function join(CollectionInterface $collection, string $field, string $key, bool $excludeField = false): self;
     /**
      * Search a full text index for a collection.
      * @param string $phrase The phrase to search

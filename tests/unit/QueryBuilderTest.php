@@ -2,7 +2,7 @@
 
 namespace Gebler\Doclite\Tests\unit;
 
-use Gebler\Doclite\Collection;
+use Gebler\Doclite\CollectionInterface;
 use Gebler\Doclite\QueryBuilder;
 use PHPUnit\Framework\TestCase;
 
@@ -35,7 +35,7 @@ class QueryBuilderTest extends TestCase
     protected function setUp(): void
     {
         $this->queries = [];
-        $this->collection = $this->createMock(Collection::class);
+        $this->collection = $this->createMock(CollectionInterface::class);
         $this->collection->method('executeDqlQuery')->willReturnCallback([$this, 'stubDql']);
         $this->collection->method('executeDmlQuery')->willReturnCallback([$this, 'stubDml']);
         $this->collection->method('getName')->wilLReturn('test');
@@ -263,7 +263,7 @@ class QueryBuilderTest extends TestCase
 
     public function testJoinWithExcludeJoiningFieldGeneratesJsonRemoveSql()
     {
-        $joinCollection = $this->createMock(Collection::class);
+        $joinCollection = $this->createMock(CollectionInterface::class);
         $joinCollection->method('getName')->wilLReturn('foobar');
         $query = $this->builder->join($joinCollection, 'user_id', 'id', true);
         $query->fetchArray();
@@ -273,7 +273,7 @@ class QueryBuilderTest extends TestCase
 
     public function testJoinGeneratesJsonSetSql()
     {
-        $joinCollection = $this->createMock(Collection::class);
+        $joinCollection = $this->createMock(CollectionInterface::class);
         $joinCollection->method('getName')->wilLReturn('foobar');
         $query = $this->builder->join($joinCollection, 'user_id', 'id', false);
         $query->fetchArray();

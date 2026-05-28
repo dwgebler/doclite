@@ -4,7 +4,7 @@
  * for use in unit tests.
  */
 
-namespace Gebler\Doclite\Tests\fakes;
+namespace Gebler\Doclite\Tests\Fakes;
 
 use Gebler\Doclite\FileSystem\FileSystemInterface;
 use Gebler\Doclite\Exception\IOException;

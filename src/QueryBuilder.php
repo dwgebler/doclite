@@ -15,12 +15,12 @@ use InvalidArgumentException;
 /**
  * QueryBuilder
  */
-class QueryBuilder implements QueryBuilderInterface
+final class QueryBuilder implements QueryBuilderInterface
 {
     /**
-     * @var Collection
+     * @var CollectionInterface
      */
-    private Collection $collection;
+    private CollectionInterface $collection;
     /**
      * @var array
      */
@@ -70,9 +70,9 @@ class QueryBuilder implements QueryBuilderInterface
 
     /**
      * QueryBuilder constructor.
-     * @param Collection $collection
+     * @param CollectionInterface $collection
      */
-    public function __construct(Collection $collection)
+    public function __construct(CollectionInterface $collection)
     {
         $this->collection = $collection;
         $this->currentQueryKey = 'where';
@@ -287,7 +287,7 @@ class QueryBuilder implements QueryBuilderInterface
      * @inheritdoc
      */
     public function join(
-        Collection $collection,
+        CollectionInterface $collection,
         string $field,
         string $key,
         bool $excludeField = false

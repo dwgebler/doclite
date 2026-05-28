@@ -30,7 +30,7 @@ use ValueError;
 /**
  * Document
  */
-class Document
+final class Document
 {
     /**
      * @var array

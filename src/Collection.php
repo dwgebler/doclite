@@ -31,7 +31,7 @@ use Symfony\Component\Uid\Uuid;
 /**
  * Collection
  */
-class Collection implements QueryBuilderInterface
+final class Collection implements QueryBuilderInterface, CollectionInterface
 {
     /**
      * @var bool
@@ -1059,7 +1059,7 @@ class Collection implements QueryBuilderInterface
      * @inheritdoc
      */
     public function join(
-        Collection $collection,
+        CollectionInterface $collection,
         string $field,
         string $key,
         bool $excludeField = false

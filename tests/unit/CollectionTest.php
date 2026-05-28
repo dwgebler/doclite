@@ -4,7 +4,7 @@ namespace Gebler\Doclite\Tests\unit;
 
 use Gebler\Doclite\Collection;
 use Gebler\Doclite\Exception\DatabaseException;
-use Gebler\Doclite\Tests\fakes\FakeDatabase;
+use Gebler\Doclite\Tests\Fakes\FakeDatabase;
 use Gebler\Doclite\Tests\data\Person;
 use Gebler\Doclite\Tests\data\PersonA;
 use Gebler\Doclite\Tests\data\PersonB;

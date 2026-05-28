@@ -16,7 +16,7 @@ use RecursiveIteratorIterator;
 /**
  * FileSystem
  */
-class FileSystem implements FileSystemInterface
+final class FileSystem implements FileSystemInterface
 {
     /**
      * Scan a file or directory for filenames matching an extension

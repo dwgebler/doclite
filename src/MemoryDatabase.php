@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Gebler\Doclite;
 
 use Gebler\Doclite\Connection\DatabaseConnection;
+use Gebler\Doclite\Connection\DatabaseConnectionInterface;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\FileSystem\FileSystem;
 use Gebler\Doclite\FileSystem\FileSystemInterface;
@@ -17,14 +18,14 @@ use Psr\Log\LoggerInterface;
 /**
  * MemoryDatabase In-memory data storage
  */
-class MemoryDatabase extends Database
+final class MemoryDatabase extends Database
 {
     /**
      * Database constructor.
      * @param bool $ftsEnabled Whether to enable full text search support (requires FTS5 extension)
      * @param int $timeout Max time in seconds to obtain a lock
      * @param LoggerInterface|null $logger
-     * @param DatabaseConnection|null $dbConnection
+     * @param DatabaseConnectionInterface|null $dbConnection
      * @param FileSystemInterface|null $fileSystem
      * @throws DatabaseException
      */
@@ -32,7 +33,7 @@ class MemoryDatabase extends Database
         bool $ftsEnabled = false,
         int $timeout = 5,
         ?LoggerInterface $logger = null,
-        ?DatabaseConnection $dbConnection = null,
+        ?DatabaseConnectionInterface $dbConnection = null,
         ?FileSystemInterface $fileSystem = null
     ) {
         $dsn = 'sqlite::memory:';

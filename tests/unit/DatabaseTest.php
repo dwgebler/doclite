@@ -2,12 +2,12 @@
 
 namespace Gebler\Doclite\Tests\unit;
 
-use Gebler\Doclite\Connection\DatabaseConnection;
+use Gebler\Doclite\Connection\DatabaseConnectionInterface;
 use Gebler\Doclite\Database;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\FileDatabase;
 use Gebler\Doclite\MemoryDatabase;
-use Gebler\Doclite\Tests\fakes\FakeFileSystem;
+use Gebler\Doclite\Tests\Fakes\FakeFileSystem;
 use PHPUnit\Framework\TestCase;
 
 class DatabaseTest extends TestCase
@@ -19,7 +19,7 @@ class DatabaseTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->conn = $this->createMock(DatabaseConnection::class);
+        $this->conn = $this->createMock(DatabaseConnectionInterface::class);
         $this->fs = new FakeFileSystem();
         $this->db = new MemoryDatabase(true, 1, null, $this->conn, $this->fs);
         $this->readDb = new FileDatabase(

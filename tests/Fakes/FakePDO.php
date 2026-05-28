@@ -4,7 +4,7 @@
  * FakePDO class. Adds the sqliteCreateFunction method to the PHPUnit PDO mock.
  */
 
-namespace Gebler\Doclite\Tests\fakes;
+namespace Gebler\Doclite\Tests\Fakes;
 
 /**
  * FakePDO

@@ -80,7 +80,8 @@ if you depend on the faster failure path.
 ### 5. Internal classes are now `final`
 
 `Document`, `Collection`, `QueryBuilder`, `DocLiteNameConverter`,
-`DatabaseConnection`, and `FileSystem` are now `final`. They were
+`FileDatabase`, `MemoryDatabase`, `DatabaseConnection`, `FileSystem`,
+`DatabaseException`, and `IOException` are now `final`. They were
 never designed for extension. If you were subclassing them, prefer
 composition or open an issue describing your use case.
 

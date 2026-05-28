@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Gebler\Doclite;
 
 use Gebler\Doclite\Connection\DatabaseConnection;
+use Gebler\Doclite\Connection\DatabaseConnectionInterface;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Exception\IOException;
 use Gebler\Doclite\FileSystem\FileSystem;
@@ -18,7 +19,7 @@ use Psr\Log\LoggerInterface;
 /**
  * FileDatabase
  */
-class FileDatabase extends Database
+final class FileDatabase extends Database
 {
     /**
      * Default filename.
@@ -33,7 +34,7 @@ class FileDatabase extends Database
      * @param bool $ftsEnabled Whether to enable full text search support (requires FTS5 extension)
      * @param int $timeout Max time in seconds to obtain a lock
      * @param LoggerInterface|null $logger
-     * @param DatabaseConnection|null $dbConnection
+     * @param DatabaseConnectionInterface|null $dbConnection
      * @param FileSystemInterface|null $fileSystem
      * @throws DatabaseException if DB connection cannot be established
      * @throws IOException if path is not valid and writeable
@@ -44,7 +45,7 @@ class FileDatabase extends Database
         bool $ftsEnabled = false,
         int $timeout = 5,
         ?LoggerInterface $logger = null,
-        ?DatabaseConnection $dbConnection = null,
+        ?DatabaseConnectionInterface $dbConnection = null,
         ?FileSystemInterface $fileSystem = null
     ) {
         $this->fileSystem = $fileSystem ?? new FileSystem();

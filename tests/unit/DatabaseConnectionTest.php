@@ -4,8 +4,8 @@ namespace Gebler\Doclite\Tests\unit;
 
 use Gebler\Doclite\Connection\DatabaseConnection;
 use Gebler\Doclite\Exception\DatabaseException;
-use Gebler\Doclite\Tests\fakes\FakePDO;
-use Gebler\Doclite\Tests\fakes\FakePDOStatement;
+use Gebler\Doclite\Tests\Fakes\FakePDO;
+use Gebler\Doclite\Tests\Fakes\FakePDOStatement;
 use PDOException;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;

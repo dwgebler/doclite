@@ -3,7 +3,7 @@
  * FakeDatabase class. Non-verified fake implementing DB interface for unit tests.
  */
 
-namespace Gebler\Doclite\Tests\fakes;
+namespace Gebler\Doclite\Tests\Fakes;
 
 use DateTimeImmutable;
 use Gebler\Doclite\Collection;

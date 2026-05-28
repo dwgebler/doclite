@@ -10,7 +10,7 @@ namespace Gebler\Doclite;
 
 use DateTimeImmutable;
 use Exception;
-use Gebler\Doclite\Connection\DatabaseConnection;
+use Gebler\Doclite\Connection\DatabaseConnectionInterface;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Exception\IOException;
 use Gebler\Doclite\FileSystem\FileSystemInterface;
@@ -95,9 +95,9 @@ abstract class Database implements DatabaseInterface
     private const VERSION = '1.1.9';
     /**
      * DB connection
-     * @var DatabaseConnection
+     * @var DatabaseConnectionInterface
      */
-    protected DatabaseConnection $conn;
+    protected DatabaseConnectionInterface $conn;
     /**
      * @var FileSystemInterface
      */
