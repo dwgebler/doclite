@@ -3,10 +3,6 @@
 DocLite 2.0 is a major-version release. This document tracks the
 breaking changes you'll need to address when upgrading.
 
-This file is updated as work on the 2.0 branch lands. Bullet points
-without a section reference are placeholders — concrete before/after
-examples are added when the corresponding code change merges.
-
 ## Required actions
 
 ### 1. PHP 8.1 minimum
@@ -111,7 +107,56 @@ single quotes, semicolons, or other punctuation are now rejected.
 If you were passing such identifiers (in practice rare), either
 rename your document fields or open an issue describing the use case.
 
-### 10. New `useJsonb` constructor parameter (additive)
+### 9. REGEXP is hardened (MATCHES operator)
+
+The custom REGEXP SQLite function used by the `MATCHES` / `NOT MATCHES`
+QueryBuilder operators now uses `#` as the regex delimiter, escapes
+embedded `#` characters, forces the `u` (Unicode) modifier, and
+returns 0 (no match) for malformed patterns or patterns containing
+NUL/control characters. If your application relied on injecting
+PCRE delimiters or modifiers via the pattern string, that pathway
+is closed. Standard PCRE syntax — character classes, anchors,
+quantifiers, capture groups — continues to work as before.
+
+### 10. YAML collection export uses a multi-document stream
+
+Previously, exporting a collection in YAML mode produced a single YAML
+array of all documents. From 2.0, collection exports stream documents
+as a YAML 1.2 multi-document stream — each document is prefixed by
+`---\n`. This change supports memory-bounded streaming of large
+collections.
+
+If you are loading YAML exports back into DocLite via `Database::import()`,
+no changes are needed — the import path handles both forms. If you are
+parsing the YAML directly in another tool, switch from `Yaml::parse()`
+to `Yaml::parseFile()` with `Yaml::PARSE_CONSTANT` flags, or split on
+`/^---$/m` and parse each chunk:
+
+```php
+foreach (preg_split('/^---\s*$/m', $yaml, -1, PREG_SPLIT_NO_EMPTY) as $chunk) {
+    $document = Yaml::parse($chunk);
+    // ...
+}
+```
+
+### 11. `Database::createIndex()` signature widened
+
+`createIndex` now accepts an optional `?string $where` parameter
+between `$unique` and `...$fields`:
+
+```php
+// before
+$db->createIndex('users', true, 'email');
+
+// after (BC — pass null for non-partial indexes)
+$db->createIndex('users', true, null, 'email');
+```
+
+If you weren't calling this method directly — `Collection::addIndex`
+and `Collection::addUniqueIndex` are the public surface and are
+unchanged — you don't need to do anything.
+
+### 12. New `useJsonb` constructor parameter (additive)
 
 `FileDatabase` and `MemoryDatabase` accept a new `bool $useJsonb = false` trailing
 parameter. Passing `true` opts new collections into JSONB BLOB storage (requires
@@ -129,13 +174,20 @@ a `DatabaseConnectionInterface` and `FileSystemInterface` simultaneously), add
 accidental mismatch — though in practice positional calls past `$fileSystem`
 are uncommon.
 
-### 9. REGEXP is hardened (MATCHES operator)
+### 13. Interface additions
 
-The custom REGEXP SQLite function used by the `MATCHES` / `NOT MATCHES`
-QueryBuilder operators now uses `#` as the regex delimiter, escapes
-embedded `#` characters, forces the `u` (Unicode) modifier, and
-returns 0 (no match) for malformed patterns or patterns containing
-NUL/control characters. If your application relied on injecting
-PCRE delimiters or modifiers via the pattern string, that pathway
-is closed. Standard PCRE syntax — character classes, anchors,
-quantifiers, capture groups — continues to work as before.
+The following methods were added to public interfaces. Concrete classes
+shipped with DocLite (`FileDatabase`, `MemoryDatabase`, `Collection`,
+`QueryBuilder`) already implement them. If you have your own
+implementation of an interface, you'll need to add them too:
+
+- `DatabaseInterface`: `getConnection()`, `isJsonbCollection()`,
+  `executeDqlQuery()`, `executeDmlQuery()`.
+- `CollectionInterface`: `insertMany()`, `saveAll()`, `upsertBy()`,
+  `addPartialIndex()`, `setSchema()`, `removeSchema()`, `getSchema()`,
+  `isJsonbStorage()`.
+- `QueryBuilderInterface`: `paginate()`, `sum()`, `avg()`, `min()`,
+  `max()`, `groupBy()`.
+- `DatabaseConnectionInterface` (new in 2.0): full public surface of
+  `DatabaseConnection`. If you were injecting a custom connection
+  implementation, implement this interface.
