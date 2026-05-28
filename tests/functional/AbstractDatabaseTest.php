@@ -365,4 +365,38 @@ abstract class AbstractDatabaseTest extends TestCase
         $rows = iterator_to_array($this->db->findAll('items', ['n' => 1]));
         $this->assertCount(1, $rows);
     }
+
+    public function testRegexpMatchesBasicPattern(): void
+    {
+        $col = $this->db->collection('items');
+        $doc = $col->get(); $doc->setValue('name', 'hello world'); $doc->save();
+        $rows = iterator_to_array($col->where('name', 'MATCHES', 'hello')->fetch());
+        $this->assertCount(1, $rows);
+    }
+
+    public function testRegexpReturnsZeroOnMalformedPattern(): void
+    {
+        $col = $this->db->collection('items');
+        $doc = $col->get(); $doc->setValue('name', 'hello'); $doc->save();
+        // '(' alone is malformed PCRE — should yield 0 matches, not crash
+        $rows = iterator_to_array($col->where('name', 'MATCHES', '(')->fetch());
+        $this->assertCount(0, $rows);
+    }
+
+    public function testRegexpRespectsUnicode(): void
+    {
+        $col = $this->db->collection('items');
+        $doc = $col->get(); $doc->setValue('name', 'café'); $doc->save();
+        $rows = iterator_to_array($col->where('name', 'MATCHES', 'caf.')->fetch());
+        $this->assertCount(1, $rows);
+    }
+
+    public function testRegexpRejectsControlCharacterInPattern(): void
+    {
+        $col = $this->db->collection('items');
+        $doc = $col->get(); $doc->setValue('name', 'hello'); $doc->save();
+        // NUL byte in pattern is rejected; the query should not match
+        $rows = iterator_to_array($col->where('name', 'MATCHES', "hello\x00")->fetch());
+        $this->assertCount(0, $rows);
+    }
 }

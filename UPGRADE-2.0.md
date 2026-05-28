@@ -93,3 +93,14 @@ Field names containing double quotes, backslashes, dollar signs,
 single quotes, semicolons, or other punctuation are now rejected.
 If you were passing such identifiers (in practice rare), either
 rename your document fields or open an issue describing the use case.
+
+### 9. REGEXP is hardened (MATCHES operator)
+
+The custom REGEXP SQLite function used by the `MATCHES` / `NOT MATCHES`
+QueryBuilder operators now uses `#` as the regex delimiter, escapes
+embedded `#` characters, forces the `u` (Unicode) modifier, and
+returns 0 (no match) for malformed patterns or patterns containing
+NUL/control characters. If your application relied on injecting
+PCRE delimiters or modifiers via the pattern string, that pathway
+is closed. Standard PCRE syntax — character classes, anchors,
+quantifiers, capture groups — continues to work as before.

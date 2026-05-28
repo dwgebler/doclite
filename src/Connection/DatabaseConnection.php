@@ -469,8 +469,21 @@ class DatabaseConnection
             if (!$this->conn) {
                 $this->conn = new PDO($this->dsn, null, null, $options);
             }
-            $this->conn->sqliteCreateFunction('REGEXP', function ($p, $v) {
-                return preg_match('/' . $p . '/', $v);
+            $this->conn->sqliteCreateFunction('REGEXP', static function (?string $p, ?string $v): int {
+                if ($p === null || $v === null) {
+                    return 0;
+                }
+                // Reject NUL, other C0 control chars, DEL, and characters that
+                // are not part of the documented "safe" PCRE subset for user input.
+                if (preg_match('/[\x00-\x1F\x7F]/u', $p)) {
+                    return 0;
+                }
+                $delim = '#';
+                // Escape any literal '#' so the delimiter cannot be closed by the user.
+                $escaped = str_replace($delim, '\\' . $delim, $p);
+                // Force the u modifier; ignore any caller-supplied trailing modifiers.
+                $result = @preg_match($delim . $escaped . $delim . 'u', $v);
+                return $result === 1 ? 1 : 0;
             }, 2);
             $this->conn->sqliteCreateFunction('JSON_DOCLITE_UNQUOTE', function ($v) {
                 // Unescape any special JSON characters
