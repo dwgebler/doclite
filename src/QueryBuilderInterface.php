@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gebler\Doclite;
 
 use Gebler\Doclite\Exception\DatabaseException;
+use Gebler\Doclite\PaginatedResult;
 
 interface QueryBuilderInterface
 {
@@ -116,4 +117,16 @@ interface QueryBuilderInterface
      * @return int
      */
     public function count(): int;
+
+    /**
+     * Execute a paginated query and return a PaginatedResult.
+     *
+     * @param int $page 1-based page number (clamped to at least 1)
+     * @param int $perPage Page size (clamped to at least 1)
+     * @param string|null $className Custom class name
+     * @param string|null $idField Custom class ID field
+     * @return PaginatedResult
+     * @throws DatabaseException
+     */
+    public function paginate(int $page, int $perPage, ?string $className = null, ?string $idField = null): PaginatedResult;
 }

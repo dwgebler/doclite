@@ -106,6 +106,10 @@
   <file src="src/QueryBuilder.php">
     <InvalidArgument>
       <code><![CDATA[$this->fetch($className, $idField)]]></code>
+      <code><![CDATA[$this
+                ->limit($perPage)
+                ->offset(($page - 1) * $perPage)
+                ->fetch($className, $idField)]]></code>
     </InvalidArgument>
     <InvalidMethodCall>
       <code><![CDATA[current]]></code>

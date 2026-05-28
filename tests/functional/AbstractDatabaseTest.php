@@ -527,4 +527,47 @@ abstract class AbstractDatabaseTest extends TestCase
             $this->assertSame('Bob', $col->findOneBy(['email' => 'b@c.com'])->getValue('name'));
         }
     }
+
+    public function testPaginateReturnsFirstPage(): void
+    {
+        $col = $this->db->collection('items');
+        foreach (range(1, 25) as $i) {
+            $doc = $col->get();
+            $doc->setValue('n', $i);
+            $doc->save();
+        }
+        $page = $col->where('n', '>', 0)->orderBy('n', 'ASC')->paginate(1, 10);
+        $this->assertSame(25, $page->total);
+        $this->assertSame(3, $page->pageCount);
+        $this->assertSame(10, count($page->items));
+        $this->assertTrue($page->hasMore);
+        $this->assertSame(1, $page->items[0]->getValue('n'));
+        $this->assertSame(10, $page->items[9]->getValue('n'));
+    }
+
+    public function testPaginateLastPagePartial(): void
+    {
+        $col = $this->db->collection('items');
+        foreach (range(1, 25) as $i) {
+            $doc = $col->get();
+            $doc->setValue('n', $i);
+            $doc->save();
+        }
+        $page = $col->where('n', '>', 0)->orderBy('n', 'ASC')->paginate(3, 10);
+        $this->assertSame(25, $page->total);
+        $this->assertSame(5, count($page->items));
+        $this->assertFalse($page->hasMore);
+        $this->assertSame(21, $page->items[0]->getValue('n'));
+    }
+
+    public function testPaginateClampsPageAndPerPageToPositive(): void
+    {
+        $col = $this->db->collection('items');
+        $doc = $col->get();
+        $doc->setValue('n', 1);
+        $doc->save();
+        $page = $col->where('n', '>', 0)->paginate(0, 0);
+        $this->assertSame(1, $page->page);
+        $this->assertSame(1, $page->perPage);
+    }
 }

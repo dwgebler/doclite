@@ -11,6 +11,7 @@ namespace Gebler\Doclite;
 use DateTimeInterface;
 use Gebler\Doclite\Exception\DatabaseException;
 use InvalidArgumentException;
+use Gebler\Doclite\PaginatedResult;
 
 /**
  * QueryBuilder
@@ -564,5 +565,34 @@ final class QueryBuilder implements QueryBuilderInterface
         }
 
         return sprintf($queryTemplate, $selectColumn, $treePart, $wherePart, $orderPart, $limitPart, $offsetPart);
+    }
+
+    /**
+     * Execute a paginated query and return a PaginatedResult.
+     *
+     * @param int $page 1-based page number (clamped to at least 1)
+     * @param int $perPage Page size (clamped to at least 1)
+     * @param string|null $className Custom class name
+     * @param string|null $idField Custom class ID field
+     * @return PaginatedResult
+     * @throws DatabaseException
+     */
+    public function paginate(int $page, int $perPage, ?string $className = null, ?string $idField = null): PaginatedResult
+    {
+        $page = max(1, $page);
+        $perPage = max(1, $perPage);
+
+        // count() must run before applying limit/offset, since it builds its
+        // own COUNT query from the WHERE state.
+        $total = $this->count();
+
+        $items = iterator_to_array(
+            $this
+                ->limit($perPage)
+                ->offset(($page - 1) * $perPage)
+                ->fetch($className, $idField)
+        );
+
+        return new PaginatedResult(array_values($items), $total, $page, $perPage);
     }
 }

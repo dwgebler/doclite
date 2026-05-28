@@ -12,6 +12,7 @@ use DateTimeImmutable;
 use Exception;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Internal\SerializerRegistry;
+use Gebler\Doclite\PaginatedResult;
 use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Serializer;
@@ -1080,5 +1081,14 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         bool $excludeField = false
     ): QueryBuilderInterface {
         return (new QueryBuilder($this))->join($collection, $field, $key, $excludeField);
+    }
+
+    /**
+     * @inheritdoc
+     * @throws DatabaseException
+     */
+    public function paginate(int $page, int $perPage, ?string $className = null, ?string $idField = null): PaginatedResult
+    {
+        return (new QueryBuilder($this))->paginate($page, $perPage, $className, $idField);
     }
 }
