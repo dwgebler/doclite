@@ -6,6 +6,8 @@ use Gebler\Doclite\Collection;
 use Gebler\Doclite\Exception\DatabaseException;
 use Gebler\Doclite\Tests\fakes\FakeDatabase;
 use Gebler\Doclite\Tests\data\Person;
+use Gebler\Doclite\Tests\data\PersonA;
+use Gebler\Doclite\Tests\data\PersonB;
 
 use PHPUnit\Framework\TestCase;
 
@@ -329,6 +331,42 @@ class CollectionTest extends TestCase
 
         $this->expectException(\Gebler\Doclite\Exception\DatabaseException::class);
         $this->collection->save($doc);
+    }
+
+    public function testInterleavedDeserializeWithCustomIdsDoesNotLeakState(): void
+    {
+        // Use separate collections so each has its own isolated data set.
+        $dbA = new FakeDatabase();
+        $dbA->setFtsEnabled(true);
+        $collectionA = new Collection('col_a', $dbA);
+
+        $dbB = new FakeDatabase();
+        $dbB->setFtsEnabled(true);
+        $collectionB = new Collection('col_b', $dbB);
+
+        // Save one document in each collection.
+        $docA = $collectionA->get('a-1');
+        $docA->setValue('name', 'Alice');
+        $collectionA->save($docA);
+
+        $docB = $collectionB->get('b-1');
+        $docB->setValue('name', 'Bob');
+        $collectionB->save($docB);
+
+        // Obtain two generators with different custom ID fields.
+        $genA = $collectionA->findAllBy(['name' => 'Alice'], PersonA::class, 'id_a');
+        $genB = $collectionB->findAllBy(['name' => 'Bob'], PersonB::class, 'id_b');
+
+        // Interleave: advance each generator once without finishing either.
+        $alice = $genA->current();
+        $bob = $genB->current();
+
+        $this->assertInstanceOf(PersonA::class, $alice);
+        $this->assertInstanceOf(PersonB::class, $bob);
+        $this->assertSame('a-1', $alice->getIdA());
+        $this->assertSame('b-1', $bob->getIdB());
+        $this->assertSame('Alice', $alice->getName());
+        $this->assertSame('Bob', $bob->getName());
     }
 
 }

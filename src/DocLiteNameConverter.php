@@ -16,28 +16,25 @@ use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 /**
  * DocLiteNameConverter
  */
-class DocLiteNameConverter implements NameConverterInterface
+final class DocLiteNameConverter implements NameConverterInterface
 {
-    private string $customId = '';
+    public function __construct(private readonly ?string $customId = null)
+    {
+    }
+
     public function normalize(string $propertyName): string
     {
+        if ($this->customId !== null && $propertyName === $this->customId) {
+            return Database::ID_FIELD;
+        }
         return $propertyName;
     }
 
     public function denormalize(string $propertyName): string
     {
-        return $propertyName === Database::ID_FIELD ?
-            ($this->customId ? $this->customId : $propertyName)
-            : $propertyName;
-    }
-
-    public function setCustomId(string $id)
-    {
-        $this->customId = $id;
-    }
-
-    public function resetCustomId(): void
-    {
-        $this->customId = '';
+        if ($this->customId !== null && $propertyName === Database::ID_FIELD) {
+            return $this->customId;
+        }
+        return $propertyName;
     }
 }

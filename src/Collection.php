@@ -78,10 +78,6 @@ class Collection implements QueryBuilderInterface
      */
     private static Serializer $serializer;
     /**
-     * @var DocLiteNameConverter
-     */
-    private static DocLiteNameConverter $nameConverter;
-    /**
      * @var array
      */
     private array $ftsIndexes = [];
@@ -96,7 +92,6 @@ class Collection implements QueryBuilderInterface
     {
         $name = strtolower($name);
         if (!self::$serializerInitialized) {
-            self::$nameConverter = new DocLiteNameConverter();
             self::$encoders = [
                 new JsonEncoder(),
                 new XmlEncoder(),
@@ -105,7 +100,7 @@ class Collection implements QueryBuilderInterface
             ];
             self::$normalizers = [
                 new DateTimeNormalizer(),
-                new ObjectNormalizer(null, self::$nameConverter, null, new ReflectionExtractor()),
+                new ObjectNormalizer(null, new DocLiteNameConverter(), null, new ReflectionExtractor()),
                 new ArrayDenormalizer(),
             ];
             self::$serializer = new Serializer(self::$normalizers, self::$encoders);
@@ -482,12 +477,12 @@ class Collection implements QueryBuilderInterface
             }
         }
 
-        if ($customIdProperty) {
-            self::$nameConverter->setCustomId($classIdProperty);
-        }
+        $serializer = $customIdProperty
+            ? self::buildCustomIdSerializer($classIdProperty)
+            : self::$serializer;
 
         try {
-            $deserialized = self::$serializer->deserialize(
+            $deserialized = $serializer->deserialize(
                 $json,
                 $className,
                 'json'
@@ -505,10 +500,6 @@ class Collection implements QueryBuilderInterface
                     'data' => $json,
                 ]
             );
-        }
-
-        if ($customIdProperty) {
-            self::$nameConverter->resetCustomId();
         }
 
         try {
@@ -546,6 +537,24 @@ class Collection implements QueryBuilderInterface
     private function createDocument(string $json): Document
     {
         return new Document(self::$serializer->decode($json, 'json'), $this);
+    }
+
+    /**
+     * Build a fresh Serializer instance with a custom-id-aware name converter.
+     * Called per-deserialize when a non-default custom ID property is needed,
+     * ensuring no mutable shared state leaks between interleaved calls.
+     * @param string $customId
+     * @return Serializer
+     */
+    private static function buildCustomIdSerializer(string $customId): Serializer
+    {
+        $converter = new DocLiteNameConverter($customId);
+        $normalizers = [
+            new DateTimeNormalizer(),
+            new ObjectNormalizer(null, $converter, null, new ReflectionExtractor()),
+            new ArrayDenormalizer(),
+        ];
+        return new Serializer($normalizers, self::$encoders);
     }
 
     /**

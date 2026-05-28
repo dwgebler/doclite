@@ -10,7 +10,7 @@
     <InvalidPropertyAssignmentValue>
       <code><![CDATA[[
                 new DateTimeNormalizer(),
-                new ObjectNormalizer(null, self::$nameConverter, null, new ReflectionExtractor()),
+                new ObjectNormalizer(null, new DocLiteNameConverter(), null, new ReflectionExtractor()),
                 new ArrayDenormalizer(),
             ]]]></code>
     </InvalidPropertyAssignmentValue>
