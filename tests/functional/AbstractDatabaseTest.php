@@ -345,4 +345,24 @@ abstract class AbstractDatabaseTest extends TestCase
             $this->assertStringContainsString('peoplereal.user_email', $e->getMessage());
         }
     }
+
+    public function testCachedStatementReusableAfterPartialIteration(): void
+    {
+        $col = $this->db->collection('items');
+        foreach (range(1, 5) as $i) {
+            $doc = $col->get();
+            $doc->setValue('n', $i);
+            $doc->save();
+        }
+
+        // First call returns a generator; pull one value and abandon
+        $gen = $this->db->findAll('items', ['n' => 1]);
+        $first = $gen->current();
+        $this->assertNotNull($first);
+        unset($gen); // generator goes out of scope
+
+        // Second call with same query hash — should work cleanly
+        $rows = iterator_to_array($this->db->findAll('items', ['n' => 1]));
+        $this->assertCount(1, $rows);
+    }
 }

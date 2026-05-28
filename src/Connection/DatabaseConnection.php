@@ -137,6 +137,7 @@ class DatabaseConnection
         $queryHash = hash('sha256', $formedQuery);
         if (isset($this->queryCache[$queryHash])) {
             $stmt = $this->queryCache[$queryHash];
+            $stmt->closeCursor();
         } else {
             $stmt = $this->conn->prepare($formedQuery);
             $this->queryCache[$queryHash] = $stmt;
