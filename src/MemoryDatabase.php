@@ -30,7 +30,7 @@ class MemoryDatabase extends Database
      */
     public function __construct(
         bool $ftsEnabled = false,
-        int $timeout = 1,
+        int $timeout = 5,
         ?LoggerInterface $logger = null,
         ?DatabaseConnection $dbConnection = null,
         ?FileSystemInterface $fileSystem = null

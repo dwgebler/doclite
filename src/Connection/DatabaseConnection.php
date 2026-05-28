@@ -76,7 +76,7 @@ class DatabaseConnection
     public function __construct(
         string $dsn,
         bool $readOnly = false,
-        int $timeout = 1,
+        int $timeout = 5,
         bool $fts = false,
         ?LoggerInterface $logger = null,
         ?PDO $conn = null
