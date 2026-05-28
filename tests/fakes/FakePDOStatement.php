@@ -15,6 +15,7 @@ use IteratorAggregate;
 class FakePDOStatement extends \PDOStatement implements IteratorAggregate
 {
     private array $result = [];
+    private ?\Throwable $executeException = null;
 
     public function getIterator(): Iterator
     {
@@ -59,8 +60,16 @@ class FakePDOStatement extends \PDOStatement implements IteratorAggregate
         return false;
     }
 
+    public function setExecuteException(\Throwable $e): void
+    {
+        $this->executeException = $e;
+    }
+
     public function execute(?array $params = null): bool
     {
+        if ($this->executeException !== null) {
+            throw $this->executeException;
+        }
         return true;
     }
 

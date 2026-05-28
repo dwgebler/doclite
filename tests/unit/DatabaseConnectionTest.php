@@ -196,4 +196,21 @@ class DatabaseConnectionTest extends TestCase
         $result = $this->conn->queryAll('SELECT foo FROM bar');
         $this->assertSame(['abc', 'def'], $result);
     }
+
+    public function testExecutePreparedRethrowsUnique23000WhenIndexNameDoesNotMatchPattern(): void
+    {
+        // PDOException constructed with a string SQLSTATE code loses the string type;
+        // use a subclass to preserve the string so getCode() === '23000' works as in production.
+        $ex = new class('UNIQUE constraint failed: some_other_constraint') extends PDOException {
+            public function __construct(string $msg)
+            {
+                parent::__construct($msg);
+                $this->code = '23000';
+            }
+        };
+        $this->stmt->setExecuteException($ex);
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionCode(DatabaseException::ERR_UNIQUE_CONSTRAINT);
+        $this->conn->executePrepared('INSERT INTO t (json) VALUES (?)', '{}');
+    }
 }

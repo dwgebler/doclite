@@ -257,16 +257,22 @@ class DatabaseConnection
                         DatabaseException::ERR_UNIQUE_CONSTRAINT,
                         $e
                     );
-                    $this->logException($ex);
-                    throw $ex;
+                } else {
+                    $ex = new DatabaseException(
+                        $e->getMessage(),
+                        DatabaseException::ERR_UNIQUE_CONSTRAINT,
+                        $e,
+                        $query,
+                        $params
+                    );
                 }
-            } else {
-                $ex = new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
                 $this->logException($ex);
                 throw $ex;
             }
+            $ex = new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
+            $this->logException($ex);
+            throw $ex;
         }
-        return 0;
     }
 
     /**
