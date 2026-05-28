@@ -793,4 +793,60 @@ abstract class AbstractDatabaseTest extends TestCase
         $col->insertMany([['n' => 'no-schema-no-problem']]);
         $this->assertSame(1, $col->count());
     }
+
+    public function testSaveAllRollsBackOnFailure(): void
+    {
+        $col = $this->db->collection('items');
+        $col->addUniqueIndex('email');
+
+        // Pre-seed two rows so that saveAll's replace() takes the UPDATE path.
+        // Then modify one document to violate the unique constraint on the other,
+        // which causes an UPDATE-level unique-constraint error mid-batch.
+        $alice = $col->get();
+        $alice->setValue('email', 'alice@example.com');
+        $alice->setValue('name', 'Alice');
+        $col->save($alice);
+
+        $bob = $col->get();
+        $bob->setValue('email', 'bob@example.com');
+        $bob->setValue('name', 'Bob');
+        $col->save($bob);
+
+        $this->assertSame(2, $col->count());
+
+        // Now change bob's email to conflict with alice inside a saveAll.
+        // The saveAll should roll back the change to alice's name too.
+        $alice->setValue('name', 'Alice (updated)');
+        $bob->setValue('email', 'alice@example.com'); // duplicate → UPDATE constraint error
+
+        try {
+            $col->saveAll([$alice, $bob]);
+            $this->fail('Expected DatabaseException for duplicate email');
+        } catch (\Gebler\Doclite\Exception\DatabaseException $e) {
+            // Both rows should be unchanged because the whole batch rolled back.
+            $this->assertSame(2, $col->count());
+            $this->assertSame('Alice', $col->findOneBy(['email' => 'alice@example.com'])->getValue('name'));
+            $this->assertSame('bob@example.com', $col->findOneBy(['email' => 'bob@example.com'])->getValue('email'));
+        }
+    }
+
+    public function testUpsertByRollsBackInnerOperationOnConflict(): void
+    {
+        $col = $this->db->collection('items');
+        $col->addUniqueIndex('email');
+        $col->insertMany([
+            ['email' => 'a@b.com', 'name' => 'Alice'],
+            ['email' => 'b@b.com', 'name' => 'Bob'],
+        ]);
+        // Upserting b@b.com with email a@b.com violates the unique constraint
+        try {
+            $col->upsertBy(['email' => 'b@b.com'], ['email' => 'a@b.com', 'name' => 'NotBob']);
+            $this->fail('Expected DatabaseException');
+        } catch (\Gebler\Doclite\Exception\DatabaseException $e) {
+            $alice = $col->findOneBy(['email' => 'a@b.com']);
+            $bob = $col->findOneBy(['email' => 'b@b.com']);
+            $this->assertSame('Alice', $alice->getValue('name'));
+            $this->assertSame('Bob', $bob->getValue('name'));
+        }
+    }
 }

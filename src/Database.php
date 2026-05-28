@@ -724,39 +724,41 @@ abstract class Database implements DatabaseInterface
         if (!$this->isValidTableName($table)) {
             return false;
         }
+
+        $ownsTransaction = false;
         if (!$this->inTransaction) {
             $this->beginTransaction($table);
-        } else {
-            if ($this->transactionTable !== $table) {
-                throw new DatabaseException(
-                    sprintf(
-                        'Cannot replace in table [%s] when transaction in progress [%s]',
-                        $table,
-                        $this->transactionTable
-                    ),
-                    DatabaseException::ERR_IN_TRANSACTION
-                );
-            }
+            $ownsTransaction = true;
+        } elseif ($this->transactionTable !== $table) {
+            throw new DatabaseException(
+                sprintf(
+                    'Cannot replace in table [%s] when transaction in progress [%s]',
+                    $table,
+                    $this->transactionTable
+                ),
+                DatabaseException::ERR_IN_TRANSACTION
+            );
         }
+
         $func = $this->jsonFunc($table);
         $query = sprintf('UPDATE "%s" SET json=%s(json_patch(json, ?)) ' .
             'WHERE json_extract(json,\'$.%s\') = ?', $table, $func, self::ID_FIELD);
 
         $updated = $this->conn->executePrepared($query, $json, $id);
         if ($updated === 1) {
-            if ($this->inTransaction) {
+            if ($ownsTransaction) {
                 $this->commit($table);
             }
             return true;
         } elseif ($updated === 0) {
             $query = sprintf('INSERT OR IGNORE INTO "%s" (json) VALUES (%s(?))', $table, $func);
             $inserted = $this->conn->executePrepared($query, $json) === 1;
-            if ($this->inTransaction) {
+            if ($ownsTransaction) {
                 $this->commit($table);
             }
             return $inserted;
         } else {
-            if ($this->inTransaction) {
+            if ($ownsTransaction) {
                 $this->rollback($table);
             }
             throw new DatabaseException(

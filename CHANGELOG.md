@@ -41,6 +41,7 @@ Major version. Breaking changes — see `UPGRADE-2.0.md`.
 - `executePrepared()` now rethrows all SQLSTATE 23000 (unique-constraint) errors instead of silently swallowing them.
 - `FileSystem::addFile()` chmod bitmask logic corrected (was ANDing instead of ORing permission bits).
 - `Document::getValue()` / `setValue()` now support backslash-escaped dots (`a\.b`) to address a top-level field whose name literally contains a dot, without treating it as a nested-path separator.
+- `Collection::saveAll` and `Collection::upsertBy` now truly roll back the whole batch on any failure. `Database::replace` no longer commits an inherited transaction.
 
 ### Features
 - `Collection::insertMany()` and `Collection::saveAll()` — wrap an iterable of writes in a single transaction.
