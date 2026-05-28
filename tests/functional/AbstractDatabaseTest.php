@@ -570,4 +570,70 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->assertSame(1, $page->page);
         $this->assertSame(1, $page->perPage);
     }
+
+    public function testSumReturnsTotal(): void
+    {
+        $col = $this->db->collection('items');
+        foreach ([1, 2, 3, 4] as $v) {
+            $col->get()->setValue('n', $v)->save();
+        }
+        $this->assertSame(10.0, $col->where('n', '>', 0)->sum('n'));
+    }
+
+    public function testSumReturnsZeroOnEmpty(): void
+    {
+        $col = $this->db->collection('items');
+        $this->assertSame(0.0, $col->where('n', '>', 0)->sum('n'));
+    }
+
+    public function testAvgReturnsMean(): void
+    {
+        $col = $this->db->collection('items');
+        foreach ([2, 4, 6] as $v) {
+            $col->get()->setValue('n', $v)->save();
+        }
+        $this->assertSame(4.0, $col->where('n', '>', 0)->avg('n'));
+    }
+
+    public function testMinAndMax(): void
+    {
+        $col = $this->db->collection('items');
+        foreach ([5, 1, 9, 3] as $v) {
+            $col->get()->setValue('n', $v)->save();
+        }
+        $this->assertSame(1, $col->where('n', '>', 0)->min('n'));
+        $this->assertSame(9, $col->where('n', '>', 0)->max('n'));
+    }
+
+    public function testMinReturnsNullOnEmpty(): void
+    {
+        $col = $this->db->collection('items');
+        $this->assertNull($col->where('n', '>', 0)->min('n'));
+    }
+
+    public function testGroupByYieldsRowsWithAliases(): void
+    {
+        $col = $this->db->collection('items');
+        foreach ([['c' => 'a', 'v' => 1], ['c' => 'a', 'v' => 2], ['c' => 'b', 'v' => 3]] as $row) {
+            $d = $col->get();
+            foreach ($row as $k => $v) {
+                $d->setValue($k, $v);
+            }
+            $d->save();
+        }
+        $rows = iterator_to_array($col->where('v', '>', 0)->groupBy('c', ['sum_v' => 'SUM(v)', 'count' => 'COUNT(*)']));
+        // sort by c for deterministic order
+        usort($rows, fn($a, $b) => strcmp($a['c'], $b['c']));
+        $this->assertEquals([
+            ['c' => 'a', 'sum_v' => 3, 'count' => 2],
+            ['c' => 'b', 'sum_v' => 3, 'count' => 1],
+        ], $rows);
+    }
+
+    public function testGroupByRejectsUnsafeAggregateExpression(): void
+    {
+        $col = $this->db->collection('items');
+        $this->expectException(\InvalidArgumentException::class);
+        iterator_to_array($col->where('v', '>', 0)->groupBy('c', ['bad' => "(SELECT 1); DROP TABLE x;--"]));
+    }
 }

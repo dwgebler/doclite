@@ -568,6 +568,132 @@ final class QueryBuilder implements QueryBuilderInterface
     }
 
     /**
+     * Build a base SELECT with a single aggregate expression, honouring the current WHERE state.
+     * @param string $aggregateExpression
+     * @return string SQL query string with placeholders
+     */
+    private function getAggregateQuery(string $aggregateExpression): string
+    {
+        $this->queryParameters = [];
+        $baseSelect = sprintf(
+            'SELECT %s AS agg FROM "%s"',
+            $aggregateExpression,
+            $this->collection->getName()
+        );
+        $treePart = '';
+        $wherePart = $this->getWhereCondition($treePart);
+        return $baseSelect . $treePart . ' WHERE ' . $wherePart;
+    }
+
+    /**
+     * Return a safe sql expression that extracts a document field via json_extract.
+     * The field name is validated by the JsonPath helper before use.
+     * @param string $field
+     * @return string
+     */
+    private function fieldAsSql(string $field): string
+    {
+        \Gebler\Doclite\Internal\JsonPath::validate($field);
+        return sprintf("json_extract(\"%s\".json, '\$.%s')", $this->collection->getName(), $field);
+    }
+
+    /**
+     * Parse and validate an aggregate expression string.
+     * Only 'COUNT(*)', 'SUM(field)', 'AVG(field)', 'MIN(field)', 'MAX(field)' are accepted.
+     * @param string $expression
+     * @return string SQL fragment
+     * @throws InvalidArgumentException for any expression not matching the allowed forms
+     */
+    private function parseAggregate(string $expression): string
+    {
+        if ($expression === 'COUNT(*)') {
+            return 'COUNT(*)';
+        }
+        if (preg_match(
+            '/^(SUM|AVG|MIN|MAX|COUNT)\(([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\)$/',
+            $expression,
+            $m
+        )) {
+            return sprintf('%s(%s)', $m[1], $this->fieldAsSql($m[2]));
+        }
+        throw new InvalidArgumentException(sprintf('Invalid aggregate expression "%s"', $expression));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function sum(string $field): float
+    {
+        $sql = $this->getAggregateQuery(sprintf('SUM(%s)', $this->fieldAsSql($field)));
+        $row = $this->collection->executeDqlQuery($sql, $this->queryParameters, true)->current();
+        return (float)($row['agg'] ?? 0);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function avg(string $field): float
+    {
+        $sql = $this->getAggregateQuery(sprintf('AVG(%s)', $this->fieldAsSql($field)));
+        $row = $this->collection->executeDqlQuery($sql, $this->queryParameters, true)->current();
+        return (float)($row['agg'] ?? 0);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function min(string $field): mixed
+    {
+        $sql = $this->getAggregateQuery(sprintf('MIN(%s)', $this->fieldAsSql($field)));
+        $row = $this->collection->executeDqlQuery($sql, $this->queryParameters, true)->current();
+        $value = $row['agg'] ?? null;
+        return is_numeric($value) ? ($value + 0) : $value;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function max(string $field): mixed
+    {
+        $sql = $this->getAggregateQuery(sprintf('MAX(%s)', $this->fieldAsSql($field)));
+        $row = $this->collection->executeDqlQuery($sql, $this->queryParameters, true)->current();
+        $value = $row['agg'] ?? null;
+        return is_numeric($value) ? ($value + 0) : $value;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function groupBy(string $field, array $aggregates = []): iterable
+    {
+        \Gebler\Doclite\Internal\JsonPath::validate($field);
+        foreach (array_keys($aggregates) as $alias) {
+            if (!is_string($alias) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $alias) !== 1) {
+                throw new InvalidArgumentException(sprintf('Invalid alias "%s"', (string)$alias));
+            }
+        }
+        $projections = [
+            sprintf("%s AS \"%s\"", $this->fieldAsSql($field), $field),
+        ];
+        foreach ($aggregates as $alias => $expression) {
+            $projections[] = sprintf('%s AS "%s"', $this->parseAggregate($expression), $alias);
+        }
+
+        $this->queryParameters = [];
+        $treePart = '';
+        $wherePart = $this->getWhereCondition($treePart);
+        $sql = sprintf(
+            'SELECT %s FROM "%s"%s WHERE %s GROUP BY %s',
+            implode(', ', $projections),
+            $this->collection->getName(),
+            $treePart,
+            $wherePart,
+            $this->fieldAsSql($field)
+        );
+        return $this->collection->executeDqlQuery($sql, $this->queryParameters, true);
+    }
+
+    /**
      * Execute a paginated query and return a PaginatedResult.
      *
      * @param int $page 1-based page number (clamped to at least 1)

@@ -105,13 +105,17 @@
   </file>
   <file src="src/QueryBuilder.php">
     <InvalidArgument>
-      <code><![CDATA[$this->fetch($className, $idField)]]></code>
       <code><![CDATA[$this
                 ->limit($perPage)
                 ->offset(($page - 1) * $perPage)
                 ->fetch($className, $idField)]]></code>
+      <code><![CDATA[$this->fetch($className, $idField)]]></code>
     </InvalidArgument>
     <InvalidMethodCall>
+      <code><![CDATA[current]]></code>
+      <code><![CDATA[current]]></code>
+      <code><![CDATA[current]]></code>
+      <code><![CDATA[current]]></code>
       <code><![CDATA[current]]></code>
       <code><![CDATA[current]]></code>
     </InvalidMethodCall>
@@ -126,6 +130,7 @@
       <code><![CDATA[QueryBuilderInterface]]></code>
     </MoreSpecificReturnType>
     <PossiblyNullArgument>
+      <code><![CDATA[$treePart]]></code>
       <code><![CDATA[$treePart]]></code>
       <code><![CDATA[$treePart]]></code>
       <code><![CDATA[$treePart]]></code>

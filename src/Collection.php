@@ -279,6 +279,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
             foreach ($results as $result) {
                 yield $result;
             }
+            return;
         }
 
         $writeCache = $this->cachingEnabled && !$haveCache;
@@ -1090,5 +1091,45 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     public function paginate(int $page, int $perPage, ?string $className = null, ?string $idField = null): PaginatedResult
     {
         return (new QueryBuilder($this))->paginate($page, $perPage, $className, $idField);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function sum(string $field): float
+    {
+        return (new QueryBuilder($this))->sum($field);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function avg(string $field): float
+    {
+        return (new QueryBuilder($this))->avg($field);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function min(string $field): mixed
+    {
+        return (new QueryBuilder($this))->min($field);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function max(string $field): mixed
+    {
+        return (new QueryBuilder($this))->max($field);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function groupBy(string $field, array $aggregates = []): iterable
+    {
+        return (new QueryBuilder($this))->groupBy($field, $aggregates);
     }
 }

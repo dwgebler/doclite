@@ -25,6 +25,7 @@ Major version. Breaking changes — see `UPGRADE-2.0.md`.
 - `Collection::saveAll()` — same for an iterable of Document/object arguments.
 - `Collection::upsertBy(criteria, data)` — single-call upsert: returns the resulting Document, whether created or updated.
 - `QueryBuilder::paginate(page, perPage)` returns a `PaginatedResult` with items, total, page, perPage, pageCount, and hasMore.
+- Aggregation on QueryBuilder: `sum()`, `avg()`, `min()`, `max()`, `groupBy(field, aggregates)`.
 
 ### Documentation
 - Added `SECURITY.md`, `CONTRIBUTING.md`, `UPGRADE-2.0.md`.

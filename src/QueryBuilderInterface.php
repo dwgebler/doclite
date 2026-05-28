@@ -129,4 +129,48 @@ interface QueryBuilderInterface
      * @throws DatabaseException
      */
     public function paginate(int $page, int $perPage, ?string $className = null, ?string $idField = null): PaginatedResult;
+
+    /**
+     * Return the sum of a numeric field across all matching documents.
+     * @param string $field
+     * @return float 0.0 if no rows match
+     * @throws DatabaseException
+     */
+    public function sum(string $field): float;
+
+    /**
+     * Return the average of a numeric field across all matching documents.
+     * @param string $field
+     * @return float 0.0 if no rows match
+     * @throws DatabaseException
+     */
+    public function avg(string $field): float;
+
+    /**
+     * Return the minimum value of a field across all matching documents.
+     * @param string $field
+     * @return mixed null if no rows match
+     * @throws DatabaseException
+     */
+    public function min(string $field): mixed;
+
+    /**
+     * Return the maximum value of a field across all matching documents.
+     * @param string $field
+     * @return mixed null if no rows match
+     * @throws DatabaseException
+     */
+    public function max(string $field): mixed;
+
+    /**
+     * Group matching documents by a field and compute optional aggregates.
+     *
+     * @param string $field The field to group by.
+     * @param array<string, string> $aggregates Map of alias => aggregate expression.
+     *   Allowed forms: 'SUM(field)', 'AVG(field)', 'MIN(field)', 'MAX(field)', 'COUNT(*)'.
+     * @return iterable<array<string, mixed>>
+     * @throws \InvalidArgumentException if any aggregate expression is not in the allowed set.
+     * @throws DatabaseException
+     */
+    public function groupBy(string $field, array $aggregates = []): iterable;
 }
