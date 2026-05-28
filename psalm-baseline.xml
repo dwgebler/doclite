@@ -105,10 +105,6 @@
     <InvalidReturnType>
       <code><![CDATA[string]]></code>
     </InvalidReturnType>
-    <PossiblyInvalidArgument>
-      <code><![CDATA[$bitmaskOctal]]></code>
-      <code><![CDATA[$bitmaskOctal]]></code>
-    </PossiblyInvalidArgument>
     <RedundantCast>
       <code><![CDATA[(string)$this->absPath($path)]]></code>
       <code><![CDATA[(string)$this->absPath($path)]]></code>

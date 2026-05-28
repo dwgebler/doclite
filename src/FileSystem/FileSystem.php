@@ -65,6 +65,32 @@ class FileSystem implements FileSystemInterface
     }
 
     /**
+     * Map ATTR_* flags to a real chmod mode integer.
+     * Owner bits are derived from ATTR_READABLE and ATTR_WRITABLE.
+     * Directories additionally get the owner execute bit so they are
+     * traversable. Group and other always get read (and execute for
+     * directories) to preserve the pre-existing world-readable semantics.
+     * @param int $attributes Combination of self::ATTR_ constants.
+     * @return int Octal mode suitable for chmod/mkdir.
+     */
+    private function attrsToMode(int $attributes): int
+    {
+        $isDirectory = ($attributes & self::ATTR_DIRECTORY) === self::ATTR_DIRECTORY;
+        $owner = 0;
+        if (($attributes & self::ATTR_READABLE) === self::ATTR_READABLE) {
+            $owner |= 04; // owner read
+        }
+        if (($attributes & self::ATTR_WRITABLE) === self::ATTR_WRITABLE) {
+            $owner |= 02; // owner write
+        }
+        if ($isDirectory) {
+            $owner |= 01; // owner execute — needed to traverse
+        }
+        $groupOther = $isDirectory ? 05 : 04; // r-x for dirs, r-- for files
+        return ($owner << 6) | ($groupOther << 3) | $groupOther;
+    }
+
+    /**
      * Add a file/directory to the file system.
      * @param string $path
      * @param int $attributes Combination of self::ATTR_ constants.
@@ -77,33 +103,15 @@ class FileSystem implements FileSystemInterface
         int $attributes = self::ATTR_READABLE | self::ATTR_WRITABLE,
         string $content = ""
     ): bool {
-        $bitmask = 0;
-        $result = false;
-
-        $isDirectory = (
-            ($attributes & self::ATTR_DIRECTORY) === self::ATTR_DIRECTORY
-        );
-
-        if (($attributes & self::ATTR_READABLE) === self::ATTR_READABLE) {
-            $bitmask |= self::ATTR_READABLE;
-        }
-        if (($attributes & self::ATTR_WRITABLE) === self::ATTR_WRITABLE) {
-            $bitmask |= self::ATTR_WRITABLE;
-        }
-
-        $bitmaskOctal = octdec(sprintf('0%d44', $bitmask));
+        $isDirectory = ($attributes & self::ATTR_DIRECTORY) === self::ATTR_DIRECTORY;
+        $mode = $this->attrsToMode($attributes);
 
         if ($isDirectory) {
-            $result = @mkdir($path, $bitmaskOctal, true);
-        } else {
-            $result = !(@file_put_contents(
-                $path,
-                $content,
-                \LOCK_EX
-            ) === false);
-            @chmod($path, $bitmaskOctal);
+            return @mkdir($path, $mode, true);
         }
 
+        $result = @file_put_contents($path, $content, \LOCK_EX) !== false;
+        @chmod($path, $mode);
         return $result;
     }
 
@@ -244,6 +252,12 @@ class FileSystem implements FileSystemInterface
      */
     public function createPath(string $path): string
     {
+        if (is_dir($path)) {
+            throw new IOException(sprintf(
+                'Path [%s] could not be created',
+                $path
+            ));
+        }
         $dirName = dirname($path);
         $fileName = basename($path);
         if (!is_dir($dirName)) {
