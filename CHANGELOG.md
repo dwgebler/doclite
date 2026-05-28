@@ -23,6 +23,7 @@ Major version. Breaking changes — see `UPGRADE-2.0.md`.
 ### Features
 - `Collection::insertMany()` — wrap an iterable of raw rows in a single transaction.
 - `Collection::saveAll()` — same for an iterable of Document/object arguments.
+- `Collection::upsertBy(criteria, data)` — single-call upsert: returns the resulting Document, whether created or updated.
 
 ### Documentation
 - Added `SECURITY.md`, `CONTRIBUTING.md`, `UPGRADE-2.0.md`.

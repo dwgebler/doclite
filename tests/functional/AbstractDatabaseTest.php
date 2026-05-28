@@ -480,4 +480,51 @@ abstract class AbstractDatabaseTest extends TestCase
         $count = $col->saveAll($gen);
         $this->assertSame(3, $count);
     }
+
+    public function testUpsertByInsertsWhenAbsent(): void
+    {
+        $col = $this->db->collection('users');
+        $doc = $col->upsertBy(['email' => 'a@b.com'], ['email' => 'a@b.com', 'name' => 'Alice']);
+        $this->assertInstanceOf(\Gebler\Doclite\Document::class, $doc);
+        $this->assertSame('Alice', $doc->getValue('name'));
+        $this->assertSame(1, $col->count());
+    }
+
+    public function testUpsertByUpdatesWhenPresent(): void
+    {
+        $col = $this->db->collection('users');
+        $first = $col->upsertBy(['email' => 'a@b.com'], ['email' => 'a@b.com', 'name' => 'Alice']);
+        $second = $col->upsertBy(['email' => 'a@b.com'], ['email' => 'a@b.com', 'name' => 'Alicia']);
+        $this->assertSame($first->getId(), $second->getId());
+        $this->assertSame('Alicia', $second->getValue('name'));
+        $this->assertSame(1, $col->count());
+    }
+
+    public function testUpsertByMergesDataIntoExistingFields(): void
+    {
+        $col = $this->db->collection('users');
+        $col->upsertBy(['email' => 'a@b.com'], ['email' => 'a@b.com', 'name' => 'Alice', 'role' => 'admin']);
+        $updated = $col->upsertBy(['email' => 'a@b.com'], ['email' => 'a@b.com', 'name' => 'Alicia']);
+        $this->assertSame('Alicia', $updated->getValue('name'));
+        // role is not in the second data array — existing value is preserved
+        $this->assertSame('admin', $updated->getValue('role'));
+    }
+
+    public function testUpsertByRollsBackOnFailure(): void
+    {
+        $col = $this->db->collection('users');
+        $col->addUniqueIndex('email');
+        $col->upsertBy(['email' => 'a@b.com'], ['email' => 'a@b.com', 'name' => 'Alice']);
+        // Insert a second user under a different criteria, then upsert that
+        // criteria with an email that conflicts with the first — fail.
+        $col->upsertBy(['email' => 'b@c.com'], ['email' => 'b@c.com', 'name' => 'Bob']);
+        try {
+            $col->upsertBy(['email' => 'b@c.com'], ['email' => 'a@b.com', 'name' => 'Bob 2']);
+            $this->fail('Expected DatabaseException');
+        } catch (\Gebler\Doclite\Exception\DatabaseException $e) {
+            // Both pre-upsert documents should still exist intact
+            $this->assertSame(2, $col->count());
+            $this->assertSame('Bob', $col->findOneBy(['email' => 'b@c.com'])->getValue('name'));
+        }
+    }
 }

@@ -83,4 +83,15 @@ interface CollectionInterface
      * @throws DatabaseException
      */
     public function saveAll(iterable $documents, array $ignoreFields = []): int;
+
+    /**
+     * Find a document by criteria; if it exists, merge $data into it and save;
+     * otherwise create a new document, populate with $data, and save. Returns
+     * the resulting Document.
+     *
+     * @param array<string, scalar> $criteria
+     * @param array<string, mixed>  $data
+     * @throws DatabaseException
+     */
+    public function upsertBy(array $criteria, array $data): Document;
 }

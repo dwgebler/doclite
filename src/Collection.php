@@ -937,6 +937,42 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     }
 
     /**
+     * Find a document by criteria; if it exists, merge $data into it and save;
+     * otherwise create a new document, populate with $data, and save. Returns
+     * the resulting Document.
+     *
+     * @param array<string, scalar> $criteria
+     * @param array<string, mixed>  $data
+     * @throws DatabaseException
+     */
+    public function upsertBy(array $criteria, array $data): Document
+    {
+        $this->beginTransaction();
+        try {
+            $existing = $this->findOneBy($criteria);
+            if ($existing instanceof Document) {
+                foreach ($data as $k => $v) {
+                    $existing->setValue((string)$k, $v);
+                }
+                $existing->save();
+                $this->commit();
+                return $existing;
+            }
+            /** @var Document $doc */
+            $doc = $this->get();
+            foreach ($data as $k => $v) {
+                $doc->setValue((string)$k, $v);
+            }
+            $doc->save();
+            $this->commit();
+            return $doc;
+        } catch (\Throwable $e) {
+            $this->rollback();
+            throw $e;
+        }
+    }
+
+    /**
      * @inheritDoc
      */
     public function union(): QueryBuilderInterface
