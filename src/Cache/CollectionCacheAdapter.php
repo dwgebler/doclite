@@ -133,13 +133,13 @@ final class CollectionCacheAdapter implements CacheInterface
             };
         }
         if (preg_match('/[{}()\\/\\\\@:\\s]/', $key) === 1) {
-            throw new class (sprintf('Cache key "%s" contains reserved characters', $key))
-                extends \InvalidArgumentException implements PsrInvalidArgumentException {
+            $message = sprintf('Cache key "%s" contains reserved characters', $key);
+            throw new class ($message) extends \InvalidArgumentException implements PsrInvalidArgumentException {
             };
         }
         if (strlen($key) > 64) {
-            throw new class (sprintf('Cache key "%s" exceeds 64 characters', $key))
-                extends \InvalidArgumentException implements PsrInvalidArgumentException {
+            $message = sprintf('Cache key "%s" exceeds 64 characters', $key);
+            throw new class ($message) extends \InvalidArgumentException implements PsrInvalidArgumentException {
             };
         }
     }

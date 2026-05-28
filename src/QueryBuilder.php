@@ -615,11 +615,8 @@ final class QueryBuilder implements QueryBuilderInterface
         if ($expression === 'COUNT(*)') {
             return 'COUNT(*)';
         }
-        if (preg_match(
-            '/^(SUM|AVG|MIN|MAX|COUNT)\(([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\)$/',
-            $expression,
-            $m
-        )) {
+        $pattern = '/^(SUM|AVG|MIN|MAX|COUNT)\(([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\)$/';
+        if (preg_match($pattern, $expression, $m) === 1) {
             return sprintf('%s(%s)', $m[1], $this->fieldAsSql($m[2]));
         }
         throw new InvalidArgumentException(sprintf('Invalid aggregate expression "%s"', $expression));
