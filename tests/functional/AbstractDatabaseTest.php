@@ -22,7 +22,7 @@ abstract class AbstractDatabaseTest extends TestCase
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('UNIQUE constraint failed: test.id');
-        $this->db->createIndex('test', true, 'id');
+        $this->db->createIndex('test', true, null, 'id');
         $this->db->insert('test', "{\"id\": \"1\"}");
         $this->db->insert('test', "{\"id\": \"1\"}");
     }
@@ -67,7 +67,7 @@ abstract class AbstractDatabaseTest extends TestCase
     public function testCreateIndex()
     {
         $this->assertTrue(
-            $this->db->createIndex('test', false, 'foobar')
+            $this->db->createIndex('test', false, null, 'foobar')
         );
     }
 
@@ -635,5 +635,44 @@ abstract class AbstractDatabaseTest extends TestCase
         $col = $this->db->collection('items');
         $this->expectException(\InvalidArgumentException::class);
         iterator_to_array($col->where('v', '>', 0)->groupBy('c', ['bad' => "(SELECT 1); DROP TABLE x;--"]));
+    }
+
+    public function testPartialIndexIsUsedForFilteredQuery(): void
+    {
+        $col = $this->db->collection('orders');
+        $col->insertMany([
+            ['status' => 'active',   'total' => 100],
+            ['status' => 'archived', 'total' => 200],
+            ['status' => 'active',   'total' => 150],
+        ]);
+        $created = $col->addPartialIndex(['total'], "json_extract(json,'\$.status') = 'active'");
+        $this->assertTrue($created);
+
+        // EXPLAIN QUERY PLAN to confirm the index is consulted
+        $plan = iterator_to_array($this->db->getConnection()->query(
+            "EXPLAIN QUERY PLAN SELECT json FROM orders WHERE json_extract(json,'\$.total') > 0 AND json_extract(json,'\$.status') = 'active'"
+        ));
+        $detail = implode(' ', array_column($plan, 'detail'));
+        $this->assertStringContainsString('idx_orders__total', $detail);
+    }
+
+    public function testPartialUniqueIndexAllowsDuplicatesOutsidePredicate(): void
+    {
+        $col = $this->db->collection('emails');
+        $col->addPartialIndex(['email'], "json_extract(json,'\$.status') = 'active'", unique: true);
+
+        $col->insertMany([
+            ['email' => 'foo@bar.com', 'status' => 'active'],
+            ['email' => 'foo@bar.com', 'status' => 'archived'], // duplicate but excluded by predicate
+        ]);
+        $this->assertSame(2, $col->count());
+
+        // Now actually violate the partial uniqueness
+        try {
+            $col->insertMany([['email' => 'foo@bar.com', 'status' => 'active']]);
+            $this->fail('Expected DatabaseException');
+        } catch (\Gebler\Doclite\Exception\DatabaseException $e) {
+            $this->assertSame(\Gebler\Doclite\Exception\DatabaseException::ERR_UNIQUE_CONSTRAINT, $e->getCode());
+        }
     }
 }

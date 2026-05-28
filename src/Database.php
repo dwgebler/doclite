@@ -1211,12 +1211,20 @@ abstract class Database implements DatabaseInterface
 
     /**
      * Create an index on a table for the specified JSON field(s).
+     *
+     * When $where is non-null the index is a SQLite partial index: only rows
+     * satisfying the predicate are indexed. The predicate is appended verbatim
+     * to the CREATE INDEX statement — it MUST be trusted, developer-authored
+     * SQL (the same trust contract as Collection::executeDqlQuery / raw DQL).
+     *
      * @param string $table
+     * @param bool $unique
+     * @param ?string $where Optional partial-index predicate (without the leading WHERE keyword)
      * @param string ...$fields
      * @return bool
      * @throws DatabaseException
      */
-    public function createIndex(string $table, bool $unique, string ...$fields): bool
+    public function createIndex(string $table, bool $unique, ?string $where, string ...$fields): bool
     {
         if ($this->readOnly) {
             throw new DatabaseException('Cannot create index in read only mode', DatabaseException::ERR_READ_ONLY_MODE);
@@ -1242,13 +1250,40 @@ abstract class Database implements DatabaseInterface
         $fieldsQuery = implode(',', $fieldsMap);
         $indexName = 'idx_' . strtolower($table) . '__' .
             implode('__', array_map('strtolower', $fields));
-        $existingIndex = (bool)($this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
-            'type=\'index\' and name=?', $indexName) ?? '0');
-        if (!$existingIndex) {
-            return $this->conn->exec(sprintf($createIndex . " %s ON %s(%s)", $indexName, $table, $fieldsQuery)) === 0;
+        if ($where !== null) {
+            // Partial indexes get a hash suffix so the same fields can have
+            // multiple partial variants distinguished by predicate.
+            $indexName .= '__p' . substr(hash('sha256', $where), 0, 8);
         }
 
+        $existingIndex = (bool)($this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
+            'type=\'index\' and name=?', $indexName) ?? '0');
+        if ($existingIndex) {
+            return true;
+        }
+
+        $sql = sprintf($createIndex . ' %s ON %s(%s)', $indexName, $table, $fieldsQuery);
+        if ($where !== null) {
+            $sql .= ' WHERE ' . $where;
+        }
+        // exec() throws on failure and returns rows-indexed on success.
+        // For partial indexes on non-empty tables this may be > 0, so we
+        // treat any non-throwing return as success.
+        $this->conn->exec($sql);
         return true;
+    }
+
+    /**
+     * Get the underlying database connection.
+     *
+     * This is an escape hatch for raw SQL operations — the same trust contract
+     * as executeDqlQuery applies.
+     *
+     * @return DatabaseConnectionInterface
+     */
+    public function getConnection(): DatabaseConnectionInterface
+    {
+        return $this->conn;
     }
 
     /**

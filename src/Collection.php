@@ -204,7 +204,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         if ($this->db->isReadOnly()) {
             return false;
         }
-        return $this->db->createIndex($this->name, true, ...$fields);
+        return $this->db->createIndex($this->name, true, null, ...$fields);
     }
 
     /**
@@ -218,7 +218,30 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         if ($this->db->isReadOnly()) {
             return false;
         }
-        return $this->db->createIndex($this->name, false, ...$fields);
+        return $this->db->createIndex($this->name, false, null, ...$fields);
+    }
+
+    /**
+     * Create a partial index on the given JSON field(s) restricted to rows
+     * matching the supplied SQL predicate.
+     *
+     * The predicate is appended verbatim to the CREATE INDEX statement — it
+     * MUST be trusted, developer-authored SQL (the same trust contract as
+     * Collection::executeDqlQuery). Never pass user-supplied input here.
+     *
+     * @param list<string> $fields JSON field names to index
+     * @param string $where Predicate (without the leading WHERE keyword),
+     *   e.g. "json_extract(json,'$.status') = 'active'"
+     * @param bool $unique Whether to create a unique partial index
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function addPartialIndex(array $fields, string $where, bool $unique = false): bool
+    {
+        if ($this->db->isReadOnly()) {
+            return false;
+        }
+        return $this->db->createIndex($this->name, $unique, $where, ...$fields);
     }
 
     /**

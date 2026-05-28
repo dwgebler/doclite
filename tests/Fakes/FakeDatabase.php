@@ -7,6 +7,7 @@ namespace Gebler\Doclite\Tests\Fakes;
 
 use DateTimeImmutable;
 use Gebler\Doclite\Collection;
+use Gebler\Doclite\Connection\DatabaseConnectionInterface;
 use Gebler\Doclite\Database;
 use Gebler\Doclite\DatabaseInterface;
 use Gebler\Doclite\Exception\DatabaseException;
@@ -310,9 +311,17 @@ class FakeDatabase implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function createIndex(string $table, bool $unique, string ...$fields): bool
+    public function createIndex(string $table, bool $unique, ?string $where, string ...$fields): bool
     {
         return true;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getConnection(): DatabaseConnectionInterface
+    {
+        throw new \RuntimeException('FakeDatabase does not provide a real connection');
     }
 
     /**

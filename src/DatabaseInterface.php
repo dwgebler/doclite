@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Gebler\Doclite;
 
 use DateTimeImmutable;
+use Gebler\Doclite\Connection\DatabaseConnectionInterface;
 use Gebler\Doclite\Exception\DatabaseException;
 use Psr\Log\LoggerInterface;
 
@@ -169,13 +170,28 @@ interface DatabaseInterface
     public function flushTable(string $name): bool;
     /**
      * Create an index on a table for the specified JSON field(s).
+     *
+     * When $where is non-null the index is a SQLite partial index: only rows
+     * satisfying the predicate are indexed. The predicate is appended verbatim
+     * to the CREATE INDEX statement — it MUST be trusted, developer-authored SQL.
+     *
      * @param string $table
      * @param bool $unique Unique index
+     * @param ?string $where Optional partial-index predicate (without the leading WHERE keyword)
      * @param string ...$fields
      * @return bool
      * @throws DatabaseException
      */
-    public function createIndex(string $table, bool $unique, string ...$fields): bool;
+    public function createIndex(string $table, bool $unique, ?string $where, string ...$fields): bool;
+
+    /**
+     * Get the underlying database connection.
+     *
+     * Escape hatch for raw SQL — same trust contract as executeDqlQuery.
+     *
+     * @return DatabaseConnectionInterface
+     */
+    public function getConnection(): DatabaseConnectionInterface;
     /**
      * Create a full text index against the specified table and JSON fields.
      * @param string $table
