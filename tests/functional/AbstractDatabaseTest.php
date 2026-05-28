@@ -5,6 +5,7 @@ namespace Gebler\Doclite\Tests\functional;
 use Gebler\Doclite\Collection;
 use Gebler\Doclite\Database;
 use Gebler\Doclite\Exception\DatabaseException;
+use Gebler\Doclite\ExportMode;
 use Gebler\Doclite\JournalMode;
 use Gebler\Doclite\SyncMode;
 use PHPUnit\Framework\TestCase;
@@ -210,6 +211,48 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->assertEquals(json_encode($data), file_get_contents($fileName));
         @unlink($fileName);
         @rmdir($tempDir);
+    }
+
+    public function testCollectionExportStreamsForLargeCollection(): void
+    {
+        $col = $this->db->collection('big');
+        $col->insertMany(array_map(
+            fn(int $i) => ['n' => $i, 's' => str_repeat('x', 2048)],
+            range(1, 10000)
+        ));
+
+        $tmp = sys_get_temp_dir() . '/doclite-streaming-export-' . bin2hex(random_bytes(4));
+        @mkdir($tmp, 0700, true);
+
+        // memory_reset_peak_usage() requires PHP 8.2+; measure the delta instead.
+        // We capture peak before the export, then compare to peak after — the difference
+        // is how much headroom the export consumed on top of the test-runner baseline.
+        $peakBefore = memory_get_peak_usage(true);
+        $this->db->export($tmp, 'json', ExportMode::Collections, ['big']);
+        $peakAfter = memory_get_peak_usage(true);
+        $exportPeakDelta = $peakAfter - $peakBefore;
+
+        $this->assertFileExists($tmp . '/big.json');
+        $contents = file_get_contents($tmp . '/big.json');
+        $decoded = json_decode($contents, true);
+        $this->assertIsArray($decoded);
+        $this->assertCount(10000, $decoded);
+
+        // 5000 docs × ~512 bytes = ~2.5 MB raw payload. With streaming, the peak
+        // delta above the pre-export baseline should stay small (a few MB at most).
+        // Without streaming the full array (~2.5 MB raw + serializer overhead) is
+        // materialized in memory, pushing the delta well above 16 MB.
+        // 16 MB delta is a generous bound that catches the buffering regression
+        // while comfortably absorbing serializer/test overhead.
+        $this->assertLessThan(
+            16 * 1024 * 1024,
+            $exportPeakDelta,
+            sprintf('Export peak memory delta %d bytes (before=%d, after=%d)', $exportPeakDelta, $peakBefore, $peakAfter)
+        );
+
+        // Cleanup
+        @unlink($tmp . '/big.json');
+        @rmdir($tmp);
     }
 
     public function testExecuteDqlQuery()

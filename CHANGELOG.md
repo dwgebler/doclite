@@ -21,6 +21,7 @@ Major version. Breaking changes — see `UPGRADE-2.0.md`.
 - (added as Phase 2 commits land)
 
 ### Features
+- Streaming export — `Database::export()` in COLLECTIONS mode writes documents incrementally instead of materializing the full array. Memory use is bounded for large collections.
 - `Collection::insertMany()` — wrap an iterable of raw rows in a single transaction.
 - `Collection::saveAll()` — same for an iterable of Document/object arguments.
 - `Collection::upsertBy(criteria, data)` — single-call upsert: returns the resulting Document, whether created or updated.

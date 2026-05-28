@@ -501,24 +501,21 @@ abstract class Database implements DatabaseInterface
         $documents = $collection->findAll();
         $serializer = $collection->getSerializer();
         if ($mode === self::MODE_EXPORT_COLLECTIONS) {
-            $documentGroup = [];
-            foreach ($documents as $document) {
-                $documentData = $document->getData();
-                if ($format === 'xml') {
-                    $documentData = $this->sanitizeXmlArrayKeys($documentData);
-                }
-                $documentGroup[] = $documentData;
+            $filePath = $path . DIRECTORY_SEPARATOR . $collection->getName() . '.' . $format;
+            $fp = @fopen($filePath, 'w');
+            if ($fp === false) {
+                throw new IOException(sprintf('Cannot open [%s] for writing', $filePath));
             }
-
-            $serialized = $serializer->serialize(
-                $documentGroup,
-                $format,
-                ['yaml_inline' => 4, 'yaml_indent' => 0]
-            );
-            $filePath = $path . DIRECTORY_SEPARATOR .
-                        $collection->getName() . '.' . $format;
-            $this->fileSystem->addFile($filePath, FileSystemInterface::ATTR_READABLE |
-                        FileSystemInterface::ATTR_WRITABLE, $serialized);
+            try {
+                match ($format) {
+                    'json' => $this->streamCollectionAsJson($fp, $documents, $serializer),
+                    'csv'  => $this->streamCollectionAsCsv($fp, $documents, $serializer),
+                    'yaml' => $this->streamCollectionAsYaml($fp, $documents, $serializer),
+                    'xml'  => $this->streamCollectionAsXml($fp, $documents, $serializer, $collection->getName()),
+                };
+            } finally {
+                fclose($fp);
+            }
             return;
         }
         foreach ($documents as $document) {
@@ -536,6 +533,90 @@ abstract class Database implements DatabaseInterface
             $this->fileSystem->addFile($filePath, FileSystemInterface::ATTR_READABLE |
                 FileSystemInterface::ATTR_WRITABLE, $serialized);
         }
+    }
+
+    /**
+     * Stream a collection as a compact JSON array, writing one document at a time.
+     * Produces identical output to json_encode($allDocs) — no extra whitespace.
+     * @param resource $fp
+     * @param iterable $documents
+     * @param \Symfony\Component\Serializer\Serializer $serializer
+     */
+    private function streamCollectionAsJson($fp, iterable $documents, $serializer): void
+    {
+        fwrite($fp, '[');
+        $first = true;
+        foreach ($documents as $document) {
+            if (!$first) {
+                fwrite($fp, ',');
+            }
+            $first = false;
+            fwrite($fp, $serializer->serialize($document->getData(), 'json'));
+        }
+        fwrite($fp, ']');
+    }
+
+    /**
+     * Stream a collection as CSV, emitting the header row from the first document
+     * and then data rows for each subsequent document.
+     * @param resource $fp
+     * @param iterable $documents
+     * @param \Symfony\Component\Serializer\Serializer $serializer
+     */
+    private function streamCollectionAsCsv($fp, iterable $documents, $serializer): void
+    {
+        $first = true;
+        foreach ($documents as $document) {
+            $row = $document->getData();
+            $serialized = $serializer->serialize([$row], 'csv');
+            if ($first) {
+                // First call: write header + first data row.
+                fwrite($fp, $serialized);
+                $first = false;
+                continue;
+            }
+            // Subsequent calls: strip the header line (everything up to and
+            // including the first newline) and write only the data row.
+            $newline = strpos($serialized, "\n");
+            if ($newline !== false) {
+                fwrite($fp, substr($serialized, $newline + 1));
+            }
+        }
+    }
+
+    /**
+     * Stream a collection as a YAML document stream (each document delimited by "---").
+     * @param resource $fp
+     * @param iterable $documents
+     * @param \Symfony\Component\Serializer\Serializer $serializer
+     */
+    private function streamCollectionAsYaml($fp, iterable $documents, $serializer): void
+    {
+        foreach ($documents as $document) {
+            fwrite($fp, "---\n");
+            fwrite($fp, $serializer->serialize($document->getData(), 'yaml', ['yaml_inline' => 4, 'yaml_indent' => 0]));
+            fwrite($fp, "\n");
+        }
+    }
+
+    /**
+     * Stream a collection as XML, wrapping all documents in a root <response> element.
+     * @param resource $fp
+     * @param iterable $documents
+     * @param \Symfony\Component\Serializer\Serializer $serializer
+     * @param string $collectionName
+     */
+    private function streamCollectionAsXml($fp, iterable $documents, $serializer, string $collectionName): void
+    {
+        fwrite($fp, "<?xml version=\"1.0\"?>\n<response>");
+        foreach ($documents as $document) {
+            $data = $this->sanitizeXmlArrayKeys($document->getData());
+            $fragment = $serializer->serialize($data, 'xml', ['xml_root_node_name' => 'item']);
+            // Strip the XML declaration emitted by the serializer for each document.
+            $fragment = preg_replace('/^<\?xml[^?]*\?>\s*/', '', $fragment) ?? $fragment;
+            fwrite($fp, $fragment);
+        }
+        fwrite($fp, "</response>");
     }
 
     /**
