@@ -18,6 +18,29 @@ use RecursiveIteratorIterator;
  */
 final class FileSystem implements FileSystemInterface
 {
+    /** @var array<string, string|false> */
+    private static array $realpathCache = [];
+    /** @var array<string, bool> */
+    private static array $isFileCache = [];
+    /** @var array<string, bool> */
+    private static array $isDirectoryCache = [];
+    /** @var array<string, bool> */
+    private static array $isReadableCache = [];
+    /** @var array<string, bool> */
+    private static array $isWriteableCache = [];
+
+    /**
+     * Clear all filesystem caches. Useful for tests that need to reset state.
+     */
+    public static function clearCache(): void
+    {
+        self::$realpathCache = [];
+        self::$isFileCache = [];
+        self::$isDirectoryCache = [];
+        self::$isReadableCache = [];
+        self::$isWriteableCache = [];
+    }
+
     /**
      * Scan a file or directory for filenames matching an extension
      * and return them.
@@ -107,11 +130,22 @@ final class FileSystem implements FileSystemInterface
         $mode = $this->attrsToMode($attributes);
 
         if ($isDirectory) {
-            return @mkdir($path, $mode, true);
+            $result = @mkdir($path, $mode, true);
+            if ($result) {
+                self::$isDirectoryCache[$path] = true;
+                self::$isFileCache[$path] = false;
+                unset(self::$realpathCache[$path], self::$isReadableCache[$path], self::$isWriteableCache[$path]);
+            }
+            return $result;
         }
 
         $result = @file_put_contents($path, $content, \LOCK_EX) !== false;
         @chmod($path, $mode);
+        if ($result) {
+            self::$isFileCache[$path] = true;
+            self::$isDirectoryCache[$path] = false;
+            unset(self::$realpathCache[$path], self::$isReadableCache[$path], self::$isWriteableCache[$path]);
+        }
         return $result;
     }
 
@@ -120,13 +154,14 @@ final class FileSystem implements FileSystemInterface
      */
     public function absPath(string $path): string
     {
-        if (empty($realPath = realpath($path))) {
-            throw new IOException(sprintf(
-                'Path [%s] does not exist',
-                $path
-            ));
+        if (!array_key_exists($path, self::$realpathCache)) {
+            self::$realpathCache[$path] = realpath($path);
         }
-        return $realPath;
+        $realPath = self::$realpathCache[$path];
+        if ($realPath === false || $realPath === '') {
+            throw new IOException(sprintf('Path [%s] does not exist', $path));
+        }
+        return (string)$realPath;
     }
 
     /**
@@ -134,7 +169,10 @@ final class FileSystem implements FileSystemInterface
      */
     public function isDirectory(string $path): bool
     {
-        return is_dir($path);
+        if (!array_key_exists($path, self::$isDirectoryCache)) {
+            self::$isDirectoryCache[$path] = is_dir($path);
+        }
+        return self::$isDirectoryCache[$path];
     }
 
     /**
@@ -142,7 +180,10 @@ final class FileSystem implements FileSystemInterface
      */
     public function isFile(string $path): bool
     {
-        return is_file($path);
+        if (!array_key_exists($path, self::$isFileCache)) {
+            self::$isFileCache[$path] = is_file($path);
+        }
+        return self::$isFileCache[$path];
     }
 
     /**
@@ -150,7 +191,10 @@ final class FileSystem implements FileSystemInterface
      */
     public function isReadable(string $path): bool
     {
-        return is_readable($path);
+        if (!array_key_exists($path, self::$isReadableCache)) {
+            self::$isReadableCache[$path] = is_readable($path);
+        }
+        return self::$isReadableCache[$path];
     }
 
     /**
@@ -158,7 +202,10 @@ final class FileSystem implements FileSystemInterface
      */
     public function isWriteable(string $path): bool
     {
-        return is_writable($path);
+        if (!array_key_exists($path, self::$isWriteableCache)) {
+            self::$isWriteableCache[$path] = is_writable($path);
+        }
+        return self::$isWriteableCache[$path];
     }
 
     /**
@@ -252,7 +299,7 @@ final class FileSystem implements FileSystemInterface
      */
     public function createPath(string $path): string
     {
-        if (is_dir($path)) {
+        if ($this->isDirectory($path)) {
             throw new IOException(sprintf(
                 'Path [%s] could not be created',
                 $path
@@ -260,13 +307,16 @@ final class FileSystem implements FileSystemInterface
         }
         $dirName = dirname($path);
         $fileName = basename($path);
-        if (!is_dir($dirName)) {
+        if (!$this->isDirectory($dirName)) {
             if (!@mkdir($dirName, 0755, true)) {
                 throw new IOException(sprintf(
                     'Path [%s] could not be created',
                     $path
                 ));
             }
+            unset(self::$realpathCache[$dirName], self::$isReadableCache[$dirName], self::$isWriteableCache[$dirName]);
+            self::$isDirectoryCache[$dirName] = true;
+            self::$isFileCache[$dirName] = false;
         }
         return realpath($dirName) . \DIRECTORY_SEPARATOR . $fileName;
     }

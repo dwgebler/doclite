@@ -12,6 +12,7 @@ class FileSystemTest extends AbstractFileSystemTest
 {
     protected function setUp(): void
     {
+        FileSystem::clearCache();
         $this->fs = new FileSystem();
         $tempDir = sys_get_temp_dir();
         $tempName = uniqid("DOCLITE_FS_");
