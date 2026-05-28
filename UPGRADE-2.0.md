@@ -74,4 +74,10 @@ DocLite 2.0 drops support for `psr/log` 1.x and 2.x. If you inject a
 PSR-3 logger, ensure it implements the 3.0 interface (no return-type
 declarations elsewhere were affected).
 
-### 7. (Placeholder — populated as further breaking changes land)
+### 7. Index naming uses double-underscore separator
+
+Indexes created from now on use `idx_<table>__<field1>__<field2>` instead
+of `idx_<table>_<field1>_<field2>`. Existing indexes from DocLite 1.x are
+left untouched and continue to function. If your application introspects
+SQLite's internal `sqlite_master` table by index name, update the
+expected pattern.

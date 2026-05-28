@@ -244,14 +244,12 @@ class DatabaseConnection
             return $result;
         } catch (PDOException $e) {
             // If the PDOException is that a unique index constraint has failed, extract the field name(s)
-            // from the index name, which is in the form idx_[collection]_[field1]_[field2]...
+            // from the index name, which is in the form idx_[collection]__[field1]__[field2]...
             if ($e->getCode() === '23000') {
                 $matches = [];
-                if (preg_match('/idx_([a-z0-9_]+)_([a-z0-9_]+)/', $e->getMessage(), $matches)) {
+                if (preg_match('/idx_([a-z0-9_]+?)__([a-z0-9_]+(?:__[a-z0-9_]+)*)/', $e->getMessage(), $matches)) {
                     $table = $matches[1];
-                    $field = $matches[2];
-                    $fields = explode('_', $field);
-                    $field = implode('.', $fields);
+                    $field = str_replace('__', '.', $matches[2]);
                     $ex = new DatabaseException(
                         'UNIQUE constraint failed: ' . $table . '.' . $field,
                         DatabaseException::ERR_UNIQUE_CONSTRAINT,

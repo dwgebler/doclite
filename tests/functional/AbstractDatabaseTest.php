@@ -304,4 +304,25 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->db->deleteFullTextIndex('test', 'abc123');
         $this->assertEmpty($this->db->scanFtsTables('test'));
     }
+
+    public function testUniqueIndexErrorMessageContainsRealFieldNameWithUnderscore(): void
+    {
+        $collection = $this->db->collection('peoplereal');
+        $collection->addUniqueIndex('user_email');
+
+        $doc1 = $collection->get();
+        $doc1->setValue('user_email', 'foo@example.com');
+        $doc1->save();
+
+        $doc2 = $collection->get();
+        $doc2->setValue('user_email', 'foo@example.com');
+
+        try {
+            $doc2->save();
+            $this->fail('Expected DatabaseException for duplicate unique key');
+        } catch (\Gebler\Doclite\Exception\DatabaseException $e) {
+            $this->assertSame(\Gebler\Doclite\Exception\DatabaseException::ERR_UNIQUE_CONSTRAINT, $e->getCode());
+            $this->assertStringContainsString('peoplereal.user_email', $e->getMessage());
+        }
+    }
 }

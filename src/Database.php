@@ -1227,8 +1227,8 @@ abstract class Database implements DatabaseInterface
         }
 
         $fieldsQuery = implode(',', $fieldsMap);
-        $indexName = 'idx_' . strtolower($table) . '_' .
-            implode('_', array_map('strtolower', $fields));
+        $indexName = 'idx_' . strtolower($table) . '__' .
+            implode('__', array_map('strtolower', $fields));
         $existingIndex = (bool)$this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
             'type=\'index\' and name=?', $indexName);
         if (!$existingIndex) {
