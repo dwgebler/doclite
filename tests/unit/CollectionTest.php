@@ -190,7 +190,7 @@ class CollectionTest extends TestCase
     {
         $document = $this->collection->get("12345");
         $this->collection->save($document);
-        $this->assertNotEmpty($this->collection->findAll());
+        $this->assertNotEmpty(iterator_to_array($this->collection->findAll()));
         $this->collection->deleteDocument($document);
         $this->assertEmpty(array_filter(iterator_to_array($this->collection->findAll())));
     }
