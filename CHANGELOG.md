@@ -21,6 +21,7 @@ Major version. Breaking changes — see `UPGRADE-2.0.md`.
 - (added as Phase 2 commits land)
 
 ### Features
+- `Cache\CollectionCacheAdapter` — PSR-16 SimpleCache implementation backed by a DocLite cache table.
 - Streaming export — `Database::export()` in COLLECTIONS mode writes documents incrementally instead of materializing the full array. Memory use is bounded for large collections.
 - `Collection::insertMany()` — wrap an iterable of raw rows in a single transaction.
 - `Collection::saveAll()` — same for an iterable of Document/object arguments.
