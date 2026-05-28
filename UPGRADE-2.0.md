@@ -81,3 +81,15 @@ of `idx_<table>_<field1>_<field2>`. Existing indexes from DocLite 1.x are
 left untouched and continue to function. If your application introspects
 SQLite's internal `sqlite_master` table by index name, update the
 expected pattern.
+
+### 8. Stricter field-name validation in QueryBuilder
+
+`Collection::where`, `Collection::orderBy`, and other query-building
+methods now validate field names against a stricter pattern:
+segments of `[A-Za-z_][A-Za-z0-9_]*`, joined by `.`, with optional
+`[<digits>]` array indices and an optional trailing `[]`.
+
+Field names containing double quotes, backslashes, dollar signs,
+single quotes, semicolons, or other punctuation are now rejected.
+If you were passing such identifiers (in practice rare), either
+rename your document fields or open an issue describing the use case.

@@ -84,12 +84,9 @@ class QueryBuilder implements QueryBuilderInterface
      * @throws InvalidArgumentException
      * @return void
      */
-    private function validateFieldName(string $name)
+    private function validateFieldName(string $name): void
     {
-        if (!preg_match('/^["\/A-Za-z0-9._\[\]]+$/', $name)) {
-            throw new InvalidArgumentException(sprintf('Invalid field name "%s"; may contain only alphanumeric, ' .
-                'dot, slash, quote, underscore and square bracket characters', $name));
-        }
+        \Gebler\Doclite\Internal\JsonPath::validate($name);
     }
 
     /**
