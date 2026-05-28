@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Gebler\Doclite\Connection;
 
 use Gebler\Doclite\Exception\DatabaseException;
+use Gebler\Doclite\Internal\QueryCache;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -34,9 +35,9 @@ class DatabaseConnection
      */
     protected ?PDO $conn;
     /**
-     * @var array
+     * @var QueryCache
      */
-    protected array $queryCache;
+    protected QueryCache $queryCache;
     /**
      * @var int
      */
@@ -86,7 +87,7 @@ class DatabaseConnection
         $this->conn = $conn;
         $this->ftsEnabled = $fts;
         $this->logger = $logger;
-        $this->queryCache = [];
+        $this->queryCache = new QueryCache();
         $this->init();
     }
 
@@ -135,12 +136,13 @@ class DatabaseConnection
             $query
         );
         $queryHash = hash('sha256', $formedQuery);
-        if (isset($this->queryCache[$queryHash])) {
-            $stmt = $this->queryCache[$queryHash];
+        $cached = $this->queryCache->get($queryHash);
+        if ($cached !== null) {
+            $stmt = $cached;
             $stmt->closeCursor();
         } else {
             $stmt = $this->conn->prepare($formedQuery);
-            $this->queryCache[$queryHash] = $stmt;
+            $this->queryCache->put($queryHash, $stmt);
         }
 
         for ($i = 1; $i <= $paramCount; $i++) {
@@ -183,10 +185,7 @@ class DatabaseConnection
      */
     public function clearQueryCache(): void
     {
-        foreach ($this->queryCache as $key => $query) {
-            $query->closeCursor();
-            unset($this->queryCache[$key]);
-        }
+        $this->queryCache->clear();
     }
 
     /**
