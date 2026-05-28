@@ -57,11 +57,7 @@
     <ImplementedReturnTypeMismatch>
       <code><![CDATA[void]]></code>
     </ImplementedReturnTypeMismatch>
-    <InvalidReturnStatement>
-      <code><![CDATA[$ftsTables]]></code>
-    </InvalidReturnStatement>
     <InvalidReturnType>
-      <code><![CDATA[array]]></code>
       <code><![CDATA[void]]></code>
     </InvalidReturnType>
     <MismatchingDocblockReturnType>

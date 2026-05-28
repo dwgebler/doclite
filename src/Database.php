@@ -1038,17 +1038,23 @@ abstract class Database implements DatabaseInterface
         }
         $ftsTables = [];
         $table = strtolower($table);
+        $prefix = 'fts_' . $table . '_';
+        $colPrefix = $table . '_';
+        $hashRegex = '/^fts_' . preg_quote($table, '/') . '_[A-Za-z0-9]+$/';
 
         $tables = array_column($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type ='table' " .
             "AND name LIKE 'fts_{$table}_%'"), 'name');
 
         foreach ($tables as $fTable) {
-            $hashId = str_replace('fts_' . $table . '_', '', $fTable);
-            if (preg_match('/^fts_' . $table . '_([A-Za-z0-9])+$/', $fTable)) {
-                $columns = array_column($this->conn->queryAll(sprintf("PRAGMA table_info('%s')", $fTable)), 'name');
-                foreach ($columns as $column) {
-                    $ftsTables[$hashId][] = str_replace($table . '_', '', $column);
-                }
+            if (!preg_match($hashRegex, $fTable)) {
+                continue;
+            }
+            $hashId = substr($fTable, strlen($prefix));
+            $columns = array_column($this->conn->queryAll(sprintf("PRAGMA table_info('%s')", $fTable)), 'name');
+            foreach ($columns as $column) {
+                $ftsTables[$hashId][] = str_starts_with($column, $colPrefix)
+                    ? substr($column, strlen($colPrefix))
+                    : $column;
             }
         }
 

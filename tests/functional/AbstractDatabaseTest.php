@@ -305,6 +305,26 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->assertEmpty($this->db->scanFtsTables('test'));
     }
 
+    public function testScanFtsTablesPreservesFieldNamesContainingTableName(): void
+    {
+        if (!$this->db->isFtsEnabled()) {
+            $this->markTestSkipped('FTS not enabled');
+        }
+        $col = $this->db->collection('posts');
+        // Create an FTS index whose field name contains the table name
+        $col->getFullTextIndex('posts_body');
+
+        $tables = $this->db->scanFtsTables('posts');
+        $this->assertNotEmpty($tables);
+        $allFields = [];
+        foreach ($tables as $cols) {
+            foreach ($cols as $c) {
+                $allFields[] = $c;
+            }
+        }
+        $this->assertContains('posts_body', $allFields);
+    }
+
     public function testUniqueIndexErrorMessageContainsRealFieldNameWithUnderscore(): void
     {
         $collection = $this->db->collection('peoplereal');
