@@ -117,4 +117,23 @@ interface CollectionInterface
      * @throws DatabaseException
      */
     public function addPartialIndex(array $fields, string $where, bool $unique = false): bool;
+
+    /**
+     * Set a JSON schema that will be enforced on every document saved to this collection.
+     * @param string $jsonSchema
+     * @return self
+     */
+    public function setSchema(string $jsonSchema): self;
+
+    /**
+     * Remove the collection-level JSON schema.
+     * @return self
+     */
+    public function removeSchema(): self;
+
+    /**
+     * Get the collection-level JSON schema string, or null if none is set.
+     * @return ?string
+     */
+    public function getSchema(): ?string;
 }

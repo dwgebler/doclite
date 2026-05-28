@@ -127,6 +127,15 @@ final class Document
     }
 
     /**
+     * Return the currently set JSON schema object, or null if none is set.
+     * @return mixed
+     */
+    public function getSchema(): mixed
+    {
+        return $this->jsonSchema;
+    }
+
+    /**
      * Add JSON schema to document for validation.
      * @param string $schema
      * @return bool

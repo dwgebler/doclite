@@ -41,6 +41,11 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     private array $ftsIndexes = [];
 
     /**
+     * @var ?string
+     */
+    private ?string $jsonSchema = null;
+
+    /**
      * Constructor.
      * @param string $name
      * @param DatabaseInterface $db
@@ -251,6 +256,54 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     public function getName(): string
     {
         return $this->name;
+    }
+
+    /**
+     * Set a JSON schema that will be enforced on every document saved to this collection.
+     * @param string $jsonSchema
+     * @return self
+     */
+    public function setSchema(string $jsonSchema): self
+    {
+        $this->jsonSchema = $jsonSchema;
+        return $this;
+    }
+
+    /**
+     * Remove the collection-level JSON schema.
+     * @return self
+     */
+    public function removeSchema(): self
+    {
+        $this->jsonSchema = null;
+        return $this;
+    }
+
+    /**
+     * Get the collection-level JSON schema string, or null if none is set.
+     * @return ?string
+     */
+    public function getSchema(): ?string
+    {
+        return $this->jsonSchema;
+    }
+
+    /**
+     * If a collection-level schema is set, validate the given document data against it.
+     * @param array $data
+     * @throws DatabaseException
+     */
+    private function validateAgainstCollectionSchema(array $data): void
+    {
+        if ($this->jsonSchema === null) {
+            return;
+        }
+        if (!isset($data[Database::ID_FIELD])) {
+            $data[Database::ID_FIELD] = $this->getUuid();
+        }
+        $doc = new Document($data, $this);
+        $doc->addJsonSchema($this->jsonSchema);
+        $doc->validateJsonSchema();
     }
 
     /**
@@ -805,6 +858,10 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
             $id = $this->getDocumentId($document);
         }
         if ($document instanceof Document) {
+            // Attach collection schema to document if document has none of its own
+            if ($this->jsonSchema !== null && $document->getSchema() === null) {
+                $document->addJsonSchema($this->jsonSchema);
+            }
             $document->validateJsonSchema();
             $json = SerializerRegistry::defaultSerializer()->serialize(
                 $document->getData(),
@@ -825,6 +882,14 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
             if (strpos($json, '{') === 0) {
                 if (strpos($json, '"' . Database::ID_FIELD . '":') === false) {
                     $json = '{"' . Database::ID_FIELD . '":' . json_encode($id) . ',' . substr($json, 1);
+                }
+            }
+
+            // Validate plain-object path against collection schema if set
+            if ($this->jsonSchema !== null) {
+                $normalizedData = json_decode($json, true);
+                if (is_array($normalizedData)) {
+                    $this->validateAgainstCollectionSchema($normalizedData);
                 }
             }
         }
@@ -928,6 +993,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
                 if (!isset($row[Database::ID_FIELD])) {
                     $row[Database::ID_FIELD] = $this->getUuid();
                 }
+                $this->validateAgainstCollectionSchema($row);
                 $json = SerializerRegistry::defaultSerializer()->serialize($row, 'json');
                 if ($this->db->insert($this->name, $json)) {
                     $written++;

@@ -30,6 +30,7 @@ Major version. Breaking changes — see `UPGRADE-2.0.md`.
 - Aggregation on QueryBuilder: `sum()`, `avg()`, `min()`, `max()`, `groupBy(field, aggregates)`.
 - `Collection::addPartialIndex(fields, where, unique=false)` for SQLite partial indexes; only rows matching the `WHERE` predicate are indexed, making the index smaller and faster for common filter+lookup workloads.
 - Opt-in JSONB storage for SQLite 3.45+: pass `useJsonb: true` to `FileDatabase`/`MemoryDatabase`. Existing JSON-text collections continue to work as before; the `_doclite_meta` table records storage kind per collection. Reads always return text JSON regardless of storage format.
+- `Collection::setSchema(jsonSchema)` — auto-validate every document on save (also covers insertMany, saveAll, upsertBy).
 
 ### Breaking changes
 - `Database::createIndex` signature widened: a new `?string $where` parameter is inserted between `$unique` and `...$fields`. Not part of the public surface but anyone subclassing or mocking `Database`/`DatabaseInterface` must update their call sites. `Collection::addIndex` and `addUniqueIndex` pass `null` transparently.

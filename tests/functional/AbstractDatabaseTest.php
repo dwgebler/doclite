@@ -718,4 +718,79 @@ abstract class AbstractDatabaseTest extends TestCase
             $this->assertSame(\Gebler\Doclite\Exception\DatabaseException::ERR_UNIQUE_CONSTRAINT, $e->getCode());
         }
     }
+
+    public function testCollectionSchemaValidatesOnSave(): void
+    {
+        $col = $this->db->collection('items');
+        $col->setSchema(json_encode([
+            'type' => 'object',
+            'required' => ['n'],
+            'properties' => [
+                'n' => ['type' => 'integer'],
+            ],
+        ]));
+        $doc = $col->get();
+        $doc->setValue('n', 'not-an-int');
+        $this->expectException(\Gebler\Doclite\Exception\DatabaseException::class);
+        $col->save($doc);
+    }
+
+    public function testCollectionSchemaValidatesOnInsertMany(): void
+    {
+        $col = $this->db->collection('items');
+        $col->setSchema(json_encode([
+            'type' => 'object',
+            'required' => ['n'],
+            'properties' => [
+                'n' => ['type' => 'integer'],
+            ],
+        ]));
+        $this->expectException(\Gebler\Doclite\Exception\DatabaseException::class);
+        $col->insertMany([['n' => 1], ['n' => 'oops']]);
+    }
+
+    public function testCollectionSchemaValidatesOnSaveAll(): void
+    {
+        $col = $this->db->collection('items');
+        $col->setSchema(json_encode([
+            'type' => 'object',
+            'required' => ['n'],
+            'properties' => [
+                'n' => ['type' => 'integer'],
+            ],
+        ]));
+        $bad = $col->get();
+        $bad->setValue('n', 'oops');
+        $this->expectException(\Gebler\Doclite\Exception\DatabaseException::class);
+        $col->saveAll([$bad]);
+    }
+
+    public function testCollectionSchemaPassesValidData(): void
+    {
+        $col = $this->db->collection('items');
+        $col->setSchema(json_encode([
+            'type' => 'object',
+            'required' => ['n'],
+            'properties' => [
+                'n' => ['type' => 'integer'],
+            ],
+        ]));
+        $col->insertMany([['n' => 1], ['n' => 2]]);
+        $this->assertSame(2, $col->count());
+    }
+
+    public function testCollectionSchemaCanBeRemoved(): void
+    {
+        $col = $this->db->collection('items');
+        $col->setSchema(json_encode([
+            'type' => 'object',
+            'required' => ['n'],
+            'properties' => [
+                'n' => ['type' => 'integer'],
+            ],
+        ]));
+        $col->removeSchema();
+        $col->insertMany([['n' => 'no-schema-no-problem']]);
+        $this->assertSame(1, $col->count());
+    }
 }
