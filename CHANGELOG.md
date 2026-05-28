@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0.0 (unreleased)
+
+Major version. Breaking changes — see `UPGRADE-2.0.md`.
+
+### Tooling
+- Bumped minimum PHP to 8.1 (drops 7.4 and 8.0).
+- Added `psr/simple-cache` dependency.
+- Narrowed `psr/log` to `^3.0`.
+- Raised PHPUnit to `^9.6 || ^10.5`, Psalm to `^5.0`.
+- Replaced Travis CI with GitHub Actions, matrix PHP 8.1/8.2/8.3/8.4.
+- Added CodeQL workflow and Dependabot configuration.
+- Added Psalm and PHP_CodeSniffer configurations (`psalm.xml`, `phpcs.xml.dist`).
+- Added Docker dev image (`.docker/`) for consistent local tool execution.
+
+### Bug fixes
+- (added as Phase 1 commits land)
+
+### Security
+- (added as Phase 2 commits land)
+
+### Features
+- (added as Phase 4 commits land)
+
+### Documentation
+- Added `SECURITY.md`, `CONTRIBUTING.md`, `UPGRADE-2.0.md`.
+
 ## 1.1.8
 
 - Fixes #32 where JSON functions are now built in to SQLite 3.38.0 upwards and the check 
