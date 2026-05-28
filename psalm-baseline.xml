@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+  <file src="src/Collection.php">
+    <InvalidMethodCall>
+      <code><![CDATA[current]]></code>
+      <code><![CDATA[current]]></code>
+      <code><![CDATA[current]]></code>
+      <code><![CDATA[valid]]></code>
+    </InvalidMethodCall>
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[[
+                new DateTimeNormalizer(),
+                new ObjectNormalizer(null, self::$nameConverter, null, new ReflectionExtractor()),
+                new ArrayDenormalizer(),
+            ]]]></code>
+    </InvalidPropertyAssignmentValue>
+    <InvalidReturnStatement>
+      <code><![CDATA[$deserialized]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->and($field, $condition, $value, ...$values)]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->fetch($className, $idField)]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->join($collection, $field, $key, $excludeField)]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->limit($limit)]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->offset($offset)]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->or($field, $condition, $value, ...$values)]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->orderBy($field, $direction)]]></code>
+      <code><![CDATA[(new QueryBuilder($this))->where($field, $condition, $value, ...$values)]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[array]]></code>
+      <code><![CDATA[object]]></code>
+    </InvalidReturnType>
+    <UndefinedInterfaceMethod>
+      <code><![CDATA[executeDmlQuery]]></code>
+      <code><![CDATA[executeDqlQuery]]></code>
+    </UndefinedInterfaceMethod>
+  </file>
+  <file src="src/Connection/DatabaseConnection.php">
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$v]]></code>
+    </PossiblyInvalidArgument>
+    <PossiblyNullReference>
+      <code><![CDATA[exec]]></code>
+      <code><![CDATA[inTransaction]]></code>
+      <code><![CDATA[inTransaction]]></code>
+      <code><![CDATA[inTransaction]]></code>
+      <code><![CDATA[prepare]]></code>
+    </PossiblyNullReference>
+  </file>
+  <file src="src/Database.php">
+    <ImplementedReturnTypeMismatch>
+      <code><![CDATA[void]]></code>
+    </ImplementedReturnTypeMismatch>
+    <InvalidReturnStatement>
+      <code><![CDATA[$ftsTables]]></code>
+    </InvalidReturnStatement>
+    <InvalidReturnType>
+      <code><![CDATA[array]]></code>
+      <code><![CDATA[void]]></code>
+    </InvalidReturnType>
+    <MismatchingDocblockReturnType>
+      <code><![CDATA[void]]></code>
+    </MismatchingDocblockReturnType>
+    <PossiblyNullArgument>
+      <code><![CDATA[$format]]></code>
+      <code><![CDATA[$this->transactionTable]]></code>
+    </PossiblyNullArgument>
+    <PossiblyUndefinedArrayOffset>
+      <code><![CDATA[$pathInfo['extension']]]></code>
+      <code><![CDATA[$pathInfo['extension']]]></code>
+    </PossiblyUndefinedArrayOffset>
+    <UndefinedInterfaceMethod>
+      <code><![CDATA[addFile]]></code>
+      <code><![CDATA[addFile]]></code>
+      <code><![CDATA[read]]></code>
+      <code><![CDATA[read]]></code>
+      <code><![CDATA[scanFiles]]></code>
+      <code><![CDATA[scanFiles]]></code>
+    </UndefinedInterfaceMethod>
+  </file>
+  <file src="src/Document.php">
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$class]]></code>
+      <code><![CDATA[$class]]></code>
+    </PossiblyInvalidArgument>
+    <PossiblyNullArrayOffset>
+      <code><![CDATA[$paths]]></code>
+    </PossiblyNullArrayOffset>
+    <PossiblyNullReference>
+      <code><![CDATA[denormalize]]></code>
+    </PossiblyNullReference>
+    <TooManyArguments>
+      <code><![CDATA[sprintf]]></code>
+    </TooManyArguments>
+    <TypeDoesNotContainType>
+      <code><![CDATA[is_array($data[$path])]]></code>
+    </TypeDoesNotContainType>
+    <UnsupportedPropertyReferenceUsage>
+      <code><![CDATA[$data = &$this->data]]></code>
+    </UnsupportedPropertyReferenceUsage>
+  </file>
+  <file src="src/FileSystem/FileSystem.php">
+    <InvalidReturnType>
+      <code><![CDATA[string]]></code>
+    </InvalidReturnType>
+    <PossiblyInvalidArgument>
+      <code><![CDATA[$bitmaskOctal]]></code>
+      <code><![CDATA[$bitmaskOctal]]></code>
+    </PossiblyInvalidArgument>
+    <RedundantCast>
+      <code><![CDATA[(string)$this->absPath($path)]]></code>
+      <code><![CDATA[(string)$this->absPath($path)]]></code>
+    </RedundantCast>
+  </file>
+  <file src="src/QueryBuilder.php">
+    <InvalidArgument>
+      <code><![CDATA[$this->fetch($className, $idField)]]></code>
+    </InvalidArgument>
+    <InvalidMethodCall>
+      <code><![CDATA[current]]></code>
+      <code><![CDATA[current]]></code>
+    </InvalidMethodCall>
+    <LessSpecificReturnStatement>
+      <code><![CDATA[$this->conditionalClause('AND', $field, $condition, $value, ...$values)]]></code>
+      <code><![CDATA[$this->conditionalClause('AND', $field, $condition, $value, ...$values)]]></code>
+      <code><![CDATA[$this->conditionalClause('OR', $field, $condition, $value, ...$values)]]></code>
+    </LessSpecificReturnStatement>
+    <MoreSpecificReturnType>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+      <code><![CDATA[QueryBuilderInterface]]></code>
+    </MoreSpecificReturnType>
+    <PossiblyNullArgument>
+      <code><![CDATA[$treePart]]></code>
+      <code><![CDATA[$treePart]]></code>
+      <code><![CDATA[$treePart]]></code>
+      <code><![CDATA[$treePart]]></code>
+      <code><![CDATA[$wherePart]]></code>
+    </PossiblyNullArgument>
+  </file>
+</files>
