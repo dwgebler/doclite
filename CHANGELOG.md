@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0
 
 Major version. Breaking changes — see `UPGRADE-2.0.md`.
 
