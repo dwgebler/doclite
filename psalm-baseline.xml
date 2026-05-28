@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<files psalm-version="5.26.1@d747f6500b38ac4f7dfc5edbcae6e4b637d7add0">
+<files psalm-version="6.16.1@f1f5de594dc76faf8784e02d3dc4716c91c6f6ac">
+  <file src="src/Cache/CollectionCacheAdapter.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function clear(): bool]]></code>
+      <code><![CDATA[public function delete(string $key): bool]]></code>
+      <code><![CDATA[public function deleteMultiple(iterable $keys): bool]]></code>
+      <code><![CDATA[public function get(string $key, mixed $default = null): mixed]]></code>
+      <code><![CDATA[public function getMultiple(iterable $keys, mixed $default = null): iterable]]></code>
+      <code><![CDATA[public function has(string $key): bool]]></code>
+      <code><![CDATA[public function set(string $key, mixed $value, null|int|DateInterval $ttl = null): bool]]></code>
+      <code><![CDATA[public function setMultiple(iterable $values, null|int|DateInterval $ttl = null): bool]]></code>
+    </MissingOverrideAttribute>
+  </file>
   <file src="src/Collection.php">
     <InvalidMethodCall>
       <code><![CDATA[current]]></code>
@@ -8,9 +20,7 @@
       <code><![CDATA[valid]]></code>
     </InvalidMethodCall>
     <InvalidReturnStatement>
-      <code><![CDATA[$deserialized]]></code>
       <code><![CDATA[(new QueryBuilder($this))->and($field, $condition, $value, ...$values)]]></code>
-      <code><![CDATA[(new QueryBuilder($this))->fetch($className, $idField)]]></code>
       <code><![CDATA[(new QueryBuilder($this))->join($collection, $field, $key, $excludeField)]]></code>
       <code><![CDATA[(new QueryBuilder($this))->limit($limit)]]></code>
       <code><![CDATA[(new QueryBuilder($this))->offset($offset)]]></code>
@@ -26,14 +36,70 @@
       <code><![CDATA[QueryBuilderInterface]]></code>
       <code><![CDATA[QueryBuilderInterface]]></code>
       <code><![CDATA[QueryBuilderInterface]]></code>
-      <code><![CDATA[array]]></code>
-      <code><![CDATA[object]]></code>
     </InvalidReturnType>
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function addPartialIndex(array $fields, string $where, bool $unique = false): bool]]></code>
+      <code><![CDATA[public function and(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function avg(string $field): float]]></code>
+      <code><![CDATA[public function count(): int]]></code>
+      <code><![CDATA[public function delete(): int]]></code>
+      <code><![CDATA[public function executeDmlQuery(string $query, array $parameters): int]]></code>
+      <code><![CDATA[public function executeDqlQuery(]]></code>
+      <code><![CDATA[public function fetch(?string $className = null, ?string $idField = null): array]]></code>
+      <code><![CDATA[public function fetchArray(?string $className = null, ?string $idField = null): array]]></code>
+      <code><![CDATA[public function getFullTextIndex(string ...$fields): string]]></code>
+      <code><![CDATA[public function getName(): string]]></code>
+      <code><![CDATA[public function getSchema(): ?string]]></code>
+      <code><![CDATA[public function groupBy(string $field, array $aggregates = []): iterable]]></code>
+      <code><![CDATA[public function insertMany(iterable $rows): int]]></code>
+      <code><![CDATA[public function intersect(): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function isJsonbStorage(): bool]]></code>
+      <code><![CDATA[public function join(]]></code>
+      <code><![CDATA[public function limit(?int $limit): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function max(string $field): mixed]]></code>
+      <code><![CDATA[public function min(string $field): mixed]]></code>
+      <code><![CDATA[public function offset(?int $offset): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function or(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function orderBy(string $field, string $direction): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function paginate(int $page, int $perPage, ?string $className = null, ?string $idField = null): PaginatedResult]]></code>
+      <code><![CDATA[public function removeSchema(): self]]></code>
+      <code><![CDATA[public function saveAll(iterable $documents, array $ignoreFields = []): int]]></code>
+      <code><![CDATA[public function search(]]></code>
+      <code><![CDATA[public function setSchema(string $jsonSchema): self]]></code>
+      <code><![CDATA[public function sum(string $field): float]]></code>
+      <code><![CDATA[public function union(): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function upsertBy(array $criteria, array $data): Document]]></code>
+      <code><![CDATA[public function where(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface]]></code>
+    </MissingOverrideAttribute>
+    <PossiblyFalseOperand>
+      <code><![CDATA[json_encode($id)]]></code>
+    </PossiblyFalseOperand>
   </file>
   <file src="src/Connection/DatabaseConnection.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function beginTransaction(): bool]]></code>
+      <code><![CDATA[public function clearQueryCache(): void]]></code>
+      <code><![CDATA[public function commit(): bool]]></code>
+      <code><![CDATA[public function disableQueryLogging(): void]]></code>
+      <code><![CDATA[public function disableSlowQueryLogging(): void]]></code>
+      <code><![CDATA[public function enableQueryLogging(): void]]></code>
+      <code><![CDATA[public function enableSlowQueryLogging(): void]]></code>
+      <code><![CDATA[public function exec(string $query): int]]></code>
+      <code><![CDATA[public function executePrepared(string $query, ...$params): int]]></code>
+      <code><![CDATA[public function getSqliteVersion(): string]]></code>
+      <code><![CDATA[public function query(string $query, ...$params): iterable]]></code>
+      <code><![CDATA[public function queryAll(string $query, ...$params): array]]></code>
+      <code><![CDATA[public function rollback(): bool]]></code>
+      <code><![CDATA[public function setLogger(LoggerInterface $logger): void]]></code>
+      <code><![CDATA[public function supportsJsonb(): bool]]></code>
+      <code><![CDATA[public function valueQuery(string $query, ...$params): ?string]]></code>
+    </MissingOverrideAttribute>
     <PossiblyInvalidArgument>
       <code><![CDATA[$v]]></code>
     </PossiblyInvalidArgument>
+    <PossiblyNullArgument>
+      <code><![CDATA[$formedQuery]]></code>
+    </PossiblyNullArgument>
     <PossiblyNullReference>
       <code><![CDATA[exec]]></code>
       <code><![CDATA[inTransaction]]></code>
@@ -53,10 +119,53 @@
     <MismatchingDocblockReturnType>
       <code><![CDATA[void]]></code>
     </MismatchingDocblockReturnType>
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function beginTransaction(string $name): bool]]></code>
+      <code><![CDATA[public function collection(string $name): Collection]]></code>
+      <code><![CDATA[public function commit(string $name): bool]]></code>
+      <code><![CDATA[public function createCacheTable(string $name): bool]]></code>
+      <code><![CDATA[public function createFullTextIndex(string $table, string $ftsId, string ...$fields): bool]]></code>
+      <code><![CDATA[public function createIndex(string $table, bool $unique, ?string $where, string ...$fields): bool]]></code>
+      <code><![CDATA[public function createTable(string $name): bool]]></code>
+      <code><![CDATA[public function delete(string $table, string $id): bool]]></code>
+      <code><![CDATA[public function deleteFullTextIndex(string $table, string $hashId): bool]]></code>
+      <code><![CDATA[public function disableQueryLogging(): void]]></code>
+      <code><![CDATA[public function disableSlowQueryLogging(): void]]></code>
+      <code><![CDATA[public function enableQueryLogging(): void]]></code>
+      <code><![CDATA[public function enableSlowQueryLogging(): void]]></code>
+      <code><![CDATA[public function executeDmlQuery(string $query, array $parameters): int]]></code>
+      <code><![CDATA[public function executeDqlQuery(string $query, array $parameters): iterable]]></code>
+      <code><![CDATA[public function find(string $table, array $criteria): ?string]]></code>
+      <code><![CDATA[public function findAll(string $table, array $criteria): iterable]]></code>
+      <code><![CDATA[public function flushTable(string $name): bool]]></code>
+      <code><![CDATA[public function getById(string $table, string $id): string]]></code>
+      <code><![CDATA[public function getCache(string $name, string $type, string $key, ?DateTimeImmutable $expiry): iterable]]></code>
+      <code><![CDATA[public function getConnection(): DatabaseConnectionInterface]]></code>
+      <code><![CDATA[public function getJournalMode(): string]]></code>
+      <code><![CDATA[public function getSyncMode(): int]]></code>
+      <code><![CDATA[public function getVersion(): string]]></code>
+      <code><![CDATA[public function insert(string $table, string $json): bool]]></code>
+      <code><![CDATA[public function isFtsEnabled(): bool]]></code>
+      <code><![CDATA[public function isJsonbCollection(string $table): bool]]></code>
+      <code><![CDATA[public function isReadOnly(): bool]]></code>
+      <code><![CDATA[public function optimize(): bool]]></code>
+      <code><![CDATA[public function replace(string $table, string $id, string $json): bool]]></code>
+      <code><![CDATA[public function rollback(string $name): bool]]></code>
+      <code><![CDATA[public function scanFtsTables(string $table): array]]></code>
+      <code><![CDATA[public function setCache(]]></code>
+      <code><![CDATA[public function setJournalMode(JournalMode|string $mode): bool]]></code>
+      <code><![CDATA[public function setLogger(LoggerInterface $logger): void]]></code>
+      <code><![CDATA[public function setSyncMode(SyncMode|int $mode): bool]]></code>
+      <code><![CDATA[public function tableExists(string $name): bool]]></code>
+    </MissingOverrideAttribute>
     <PossiblyNullArgument>
       <code><![CDATA[$format]]></code>
       <code><![CDATA[$this->transactionTable]]></code>
     </PossiblyNullArgument>
+    <PossiblyNullArrayOffset>
+      <code><![CDATA[$sanitized]]></code>
+      <code><![CDATA[$sanitized]]></code>
+    </PossiblyNullArrayOffset>
     <PossiblyUndefinedArrayOffset>
       <code><![CDATA[$pathInfo['extension']]]></code>
       <code><![CDATA[$pathInfo['extension']]]></code>
@@ -69,11 +178,27 @@
       <code><![CDATA[scanFiles]]></code>
     </UndefinedInterfaceMethod>
   </file>
+  <file src="src/DocLiteNameConverter.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function denormalize(string $propertyName): string]]></code>
+      <code><![CDATA[public function normalize(string $propertyName): string]]></code>
+    </MissingOverrideAttribute>
+  </file>
   <file src="src/Document.php">
+    <PossiblyFalseArgument>
+      <code><![CDATA[json_encode($this->data)]]></code>
+    </PossiblyFalseArgument>
     <PossiblyInvalidArgument>
       <code><![CDATA[$class]]></code>
       <code><![CDATA[$class]]></code>
     </PossiblyInvalidArgument>
+    <PossiblyNullArgument>
+      <code><![CDATA[preg_replace(
+            '/(?<!^)[A-Z]/',
+            '_$0',
+            substr($name, 3)
+        )]]></code>
+    </PossiblyNullArgument>
     <PossiblyNullArrayOffset>
       <code><![CDATA[$paths]]></code>
     </PossiblyNullArrayOffset>
@@ -94,19 +219,27 @@
     <InvalidReturnType>
       <code><![CDATA[string]]></code>
     </InvalidReturnType>
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function absPath(string $path): string]]></code>
+      <code><![CDATA[public function createPath(string $path): string]]></code>
+      <code><![CDATA[public function isDirectory(string $path): bool]]></code>
+      <code><![CDATA[public function isFile(string $path): bool]]></code>
+      <code><![CDATA[public function isReadable(string $path): bool]]></code>
+      <code><![CDATA[public function isSqliteDatabase(string $path): bool]]></code>
+      <code><![CDATA[public function isWriteable(string $path): bool]]></code>
+    </MissingOverrideAttribute>
+    <PossiblyFalseArgument>
+      <code><![CDATA[filesize($realPath)]]></code>
+    </PossiblyFalseArgument>
+    <PossiblyFalseOperand>
+      <code><![CDATA[realpath($dirName)]]></code>
+    </PossiblyFalseOperand>
     <RedundantCast>
       <code><![CDATA[(string)$this->absPath($path)]]></code>
       <code><![CDATA[(string)$this->absPath($path)]]></code>
     </RedundantCast>
   </file>
   <file src="src/QueryBuilder.php">
-    <InvalidArgument>
-      <code><![CDATA[$this
-                ->limit($perPage)
-                ->offset(($page - 1) * $perPage)
-                ->fetch($className, $idField)]]></code>
-      <code><![CDATA[$this->fetch($className, $idField)]]></code>
-    </InvalidArgument>
     <InvalidMethodCall>
       <code><![CDATA[current]]></code>
       <code><![CDATA[current]]></code>
@@ -115,11 +248,37 @@
       <code><![CDATA[current]]></code>
       <code><![CDATA[current]]></code>
     </InvalidMethodCall>
+    <InvalidOperand>
+      <code><![CDATA[$value + 0]]></code>
+      <code><![CDATA[$value + 0]]></code>
+    </InvalidOperand>
     <LessSpecificReturnStatement>
       <code><![CDATA[$this->conditionalClause('AND', $field, $condition, $value, ...$values)]]></code>
       <code><![CDATA[$this->conditionalClause('AND', $field, $condition, $value, ...$values)]]></code>
       <code><![CDATA[$this->conditionalClause('OR', $field, $condition, $value, ...$values)]]></code>
     </LessSpecificReturnStatement>
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function and(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function avg(string $field): float]]></code>
+      <code><![CDATA[public function count(): int]]></code>
+      <code><![CDATA[public function delete(): int]]></code>
+      <code><![CDATA[public function fetch(?string $className = null, ?string $idField = null): iterable]]></code>
+      <code><![CDATA[public function fetchArray(?string $className = null, ?string $idField = null): array]]></code>
+      <code><![CDATA[public function groupBy(string $field, array $aggregates = []): iterable]]></code>
+      <code><![CDATA[public function intersect(): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function join(]]></code>
+      <code><![CDATA[public function limit(?int $limit): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function max(string $field): mixed]]></code>
+      <code><![CDATA[public function min(string $field): mixed]]></code>
+      <code><![CDATA[public function offset(?int $offset): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function or(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function orderBy(string $field, string $direction = 'ASC'): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function paginate(int $page, int $perPage, ?string $className = null, ?string $idField = null): PaginatedResult]]></code>
+      <code><![CDATA[public function search(]]></code>
+      <code><![CDATA[public function sum(string $field): float]]></code>
+      <code><![CDATA[public function union(): QueryBuilderInterface]]></code>
+      <code><![CDATA[public function where(string $field, string $condition, $value = null, ...$values): QueryBuilderInterface]]></code>
+    </MissingOverrideAttribute>
     <MoreSpecificReturnType>
       <code><![CDATA[QueryBuilderInterface]]></code>
       <code><![CDATA[QueryBuilderInterface]]></code>

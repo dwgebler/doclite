@@ -38,9 +38,11 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Coding standards (PSR-12)
+        if: matrix.php == '8.3'
         run: vendor/bin/phpcs
 
       - name: Static analysis (Psalm)
+        if: matrix.php == '8.3'
         run: vendor/bin/psalm --no-progress --show-info=false
 
       - name: PHPUnit
