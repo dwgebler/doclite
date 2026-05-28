@@ -1,0 +1,6 @@
+/vendor/
+/composer.lock
+/build/
+/docs/superpowers/
+/.phpunit.cache/
+/.phpunit.result.cache
