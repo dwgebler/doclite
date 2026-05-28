@@ -35,19 +35,14 @@ final class DatabaseException extends \Exception
     public const ERR_NO_FTS5 = 19;
     public const ERR_UNIQUE_CONSTRAINT = 20;
 
-    private string $query;
-    private array $params;
-
     public function __construct(
         string $message,
         int $code = 0,
-        \Throwable $e = null,
-        string $query = "",
-        array $params = []
+        ?\Throwable $e = null,
+        private readonly string $query = '',
+        private readonly array $params = [],
     ) {
         parent::__construct($message, $code, $e);
-        $this->query = $query;
-        $this->params = $params;
     }
 
     /**

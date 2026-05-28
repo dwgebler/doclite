@@ -18,10 +18,6 @@ use InvalidArgumentException;
 final class QueryBuilder implements QueryBuilderInterface
 {
     /**
-     * @var CollectionInterface
-     */
-    private CollectionInterface $collection;
-    /**
      * @var array
      */
     private array $expressions = [
@@ -72,9 +68,8 @@ final class QueryBuilder implements QueryBuilderInterface
      * QueryBuilder constructor.
      * @param CollectionInterface $collection
      */
-    public function __construct(CollectionInterface $collection)
+    public function __construct(private readonly CollectionInterface $collection)
     {
-        $this->collection = $collection;
         $this->currentQueryKey = 'where';
     }
 

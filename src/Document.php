@@ -43,11 +43,6 @@ final class Document
     private string $id;
 
     /**
-     * @var Collection
-     */
-    private Collection $collection;
-
-    /**
      * @var mixed
      */
     private $jsonSchema = null;
@@ -63,7 +58,7 @@ final class Document
      * @param Collection $collection
      * @throws DatabaseException
      */
-    public function __construct(array $data, Collection $collection)
+    public function __construct(array $data, private readonly Collection $collection)
     {
         if (!isset($data[Database::ID_FIELD])) {
             throw new DatabaseException(
@@ -76,7 +71,6 @@ final class Document
         }
         $this->id = $data[Database::ID_FIELD];
         $this->data = $data;
-        $this->collection = $collection;
         if (!self::$serializer) {
             $encoders = [new JsonEncoder()];
             $normalizers = [

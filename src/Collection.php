@@ -58,10 +58,6 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
      */
     private static array $normalizers;
     /**
-     * @var DatabaseInterface
-     */
-    private DatabaseInterface $db;
-    /**
      * @var string
      */
     private string $name;
@@ -88,7 +84,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
      * @param DatabaseInterface $db
      * @throws DatabaseException
      */
-    public function __construct(string $name, DatabaseInterface $db)
+    public function __construct(string $name, private readonly DatabaseInterface $db)
     {
         $name = strtolower($name);
         if (!self::$serializerInitialized) {
@@ -108,7 +104,6 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         }
 
         $this->name = $name;
-        $this->db = $db;
         if (!self::$accessorsInitialized) {
             self::$sensitiveAccessor = PropertyAccess::createPropertyAccessor();
             self::$insensitiveAccessor =

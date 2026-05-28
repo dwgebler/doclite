@@ -21,15 +21,6 @@ use Psr\Log\LoggerInterface;
 final class DatabaseConnection implements DatabaseConnectionInterface
 {
     /**
-     * SQLite DSN
-     * @var string
-     */
-    protected string $dsn;
-    /**
-     * @var bool
-     */
-    protected bool $readOnly;
-    /**
      * PDO connection
      * @var ?PDO
      */
@@ -38,14 +29,6 @@ final class DatabaseConnection implements DatabaseConnectionInterface
      * @var QueryCache
      */
     protected QueryCache $queryCache;
-    /**
-     * @var int
-     */
-    private int $timeout;
-    /**
-     * @var bool
-     */
-    private bool $ftsEnabled = false;
     /**
      * @var LoggerInterface|null
      */
@@ -66,26 +49,22 @@ final class DatabaseConnection implements DatabaseConnectionInterface
     /**
      * Constructor.
      * @param string $dsn Connection DSN
-     * @param bool $readOnly Open in read-only mdoe
+     * @param bool $readOnly Open in read-only mode
      * @param int $timeout Max time in seconds to obtain a lock
-     * @param bool $fts Flag to enable full text support (requires SQLite FTS5 extension)
+     * @param bool $ftsEnabled Flag to enable full text support (requires SQLite FTS5 extension)
      * @param LoggerInterface|null $logger
      * @param PDO|null $conn
      * @throws DatabaseException on connection error
      */
     public function __construct(
-        string $dsn,
-        bool $readOnly = false,
-        int $timeout = 5,
-        bool $fts = false,
+        protected readonly string $dsn,
+        protected readonly bool $readOnly = false,
+        private readonly int $timeout = 5,
+        private readonly bool $ftsEnabled = false,
         ?LoggerInterface $logger = null,
-        ?PDO $conn = null
+        ?PDO $conn = null,
     ) {
-        $this->dsn = $dsn;
-        $this->readOnly = $readOnly;
-        $this->timeout = $timeout;
         $this->conn = $conn;
-        $this->ftsEnabled = $fts;
         $this->logger = $logger;
         $this->queryCache = new QueryCache();
         $this->init();
