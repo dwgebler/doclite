@@ -11,20 +11,9 @@ namespace Gebler\Doclite;
 use DateTimeImmutable;
 use Exception;
 use Gebler\Doclite\Exception\DatabaseException;
+use Gebler\Doclite\Internal\SerializerRegistry;
 use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
-use Symfony\Component\PropertyAccess\PropertyAccess;
-use Symfony\Component\PropertyAccess\PropertyAccessor;
-use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
-use Symfony\Component\Serializer\Encoder\CsvEncoder;
-use Symfony\Component\Serializer\Encoder\EncoderInterface;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
-use Symfony\Component\Serializer\Encoder\XmlEncoder;
-use Symfony\Component\Serializer\Encoder\YamlEncoder;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Uid\Uuid;
 
@@ -33,30 +22,6 @@ use Symfony\Component\Uid\Uuid;
  */
 final class Collection implements QueryBuilderInterface, CollectionInterface
 {
-    /**
-     * @var bool
-     */
-    private static bool $accessorsInitialized = false;
-    /**
-     * @var bool
-     */
-    private static bool $serializerInitialized = false;
-    /**
-     * @var PropertyAccessor
-     */
-    private static PropertyAccessor $sensitiveAccessor;
-    /**
-     * @var PropertyAccessor
-     */
-    private static PropertyAccessor $insensitiveAccessor;
-    /**
-     * @var array<EncoderInterface>
-     */
-    private static array $encoders;
-    /**
-     * @var array<NormalizerInterface>
-     */
-    private static array $normalizers;
     /**
      * @var string
      */
@@ -69,10 +34,6 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
      * @var int
      */
     private int $cacheLifetime = 60;
-    /**
-     * @var Serializer
-     */
-    private static Serializer $serializer;
     /**
      * @var array
      */
@@ -87,31 +48,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     public function __construct(string $name, private readonly DatabaseInterface $db)
     {
         $name = strtolower($name);
-        if (!self::$serializerInitialized) {
-            self::$encoders = [
-                new JsonEncoder(),
-                new XmlEncoder(),
-                new YamlEncoder(),
-                new CsvEncoder(),
-            ];
-            self::$normalizers = [
-                new DateTimeNormalizer(),
-                new ObjectNormalizer(null, new DocLiteNameConverter(), null, new ReflectionExtractor()),
-                new ArrayDenormalizer(),
-            ];
-            self::$serializer = new Serializer(self::$normalizers, self::$encoders);
-            self::$serializerInitialized = true;
-        }
-
         $this->name = $name;
-        if (!self::$accessorsInitialized) {
-            self::$sensitiveAccessor = PropertyAccess::createPropertyAccessor();
-            self::$insensitiveAccessor =
-                PropertyAccess::createPropertyAccessorBuilder()
-                    ->disableExceptionOnInvalidPropertyPath()
-                    ->getPropertyAccessor();
-            self::$accessorsInitialized = true;
-        }
         if (!$this->db->tableExists($name)) {
             $this->db->createTable($name);
         }
@@ -143,7 +80,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
      */
     public function getSerializer(): Serializer
     {
-        return self::$serializer;
+        return SerializerRegistry::defaultSerializer();
     }
 
     /**
@@ -385,13 +322,13 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
      */
     private function getCache(string $type, $data): iterable
     {
-        $serialized = self::$serializer->serialize($data, 'json');
+        $serialized = SerializerRegistry::defaultSerializer()->serialize($data, 'json');
         $cacheKey = hash('sha256', $serialized);
         $expiryDate = $this->cacheLifetime > 0 ? new DateTimeImmutable() : null;
         $results = $this->db->getCache($this->getCacheName(), $type, $cacheKey, $expiryDate);
         foreach ($results as $result) {
             if (is_string($result)) {
-                yield self::$serializer->decode($result, 'json');
+                yield SerializerRegistry::defaultSerializer()->decode($result, 'json');
             } else {
                 yield $result;
             }
@@ -413,8 +350,8 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         }
 
         $expiryDate = null;
-        $serializedQuery = self::$serializer->serialize($queryData, 'json');
-        $cacheData = self::$serializer->encode($resultData, 'json');
+        $serializedQuery = SerializerRegistry::defaultSerializer()->serialize($queryData, 'json');
+        $cacheData = SerializerRegistry::defaultSerializer()->encode($resultData, 'json');
         $cacheKey = hash('sha256', $serializedQuery);
         $dataKey = hash('sha256', $cacheData);
         $hasExpiry = $this->cacheLifetime > 0;
@@ -459,7 +396,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         }
 
         if (!$documentId) {
-            $decoded = self::$serializer->decode($json, 'json');
+            $decoded = SerializerRegistry::defaultSerializer()->decode($json, 'json');
             $documentId = $decoded[Database::ID_FIELD] ?? null;
             if ($documentId === null) {
                 throw new DatabaseException(
@@ -473,8 +410,8 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         }
 
         $serializer = $customIdProperty
-            ? self::buildCustomIdSerializer($classIdProperty)
-            : self::$serializer;
+            ? SerializerRegistry::customIdSerializer($classIdProperty)
+            : SerializerRegistry::defaultSerializer();
 
         try {
             $deserialized = $serializer->deserialize(
@@ -498,14 +435,14 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         }
 
         try {
-            self::$sensitiveAccessor->setValue(
+            SerializerRegistry::sensitiveAccessor()->setValue(
                 $deserialized,
                 $classIdProperty,
                 $documentId
             );
         } catch (NoSuchPropertyException $e) {
             try {
-                self::$sensitiveAccessor->setValue(
+                SerializerRegistry::sensitiveAccessor()->setValue(
                     $deserialized,
                     'docliteid',
                     $documentId
@@ -531,25 +468,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
      */
     private function createDocument(string $json): Document
     {
-        return new Document(self::$serializer->decode($json, 'json'), $this);
-    }
-
-    /**
-     * Build a fresh Serializer instance with a custom-id-aware name converter.
-     * Called per-deserialize when a non-default custom ID property is needed,
-     * ensuring no mutable shared state leaks between interleaved calls.
-     * @param string $customId
-     * @return Serializer
-     */
-    private static function buildCustomIdSerializer(string $customId): Serializer
-    {
-        $converter = new DocLiteNameConverter($customId);
-        $normalizers = [
-            new DateTimeNormalizer(),
-            new ObjectNormalizer(null, $converter, null, new ReflectionExtractor()),
-            new ArrayDenormalizer(),
-        ];
-        return new Serializer($normalizers, self::$encoders);
+        return new Document(SerializerRegistry::defaultSerializer()->decode($json, 'json'), $this);
     }
 
     /**
@@ -816,8 +735,8 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     private function getDocumentId(object $document): string
     {
         $id = (string)(
-            self::$insensitiveAccessor->getValue($document, Database::ID_FIELD)
-            ?? self::$insensitiveAccessor->getValue($document, 'docliteid')
+            SerializerRegistry::insensitiveAccessor()->getValue($document, Database::ID_FIELD)
+            ?? SerializerRegistry::insensitiveAccessor()->getValue($document, 'docliteid')
         );
         if ($id === "") {
             throw new DatabaseException(
@@ -852,12 +771,12 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
         }
         if ($document instanceof Document) {
             $document->validateJsonSchema();
-            $json = self::$serializer->serialize(
+            $json = SerializerRegistry::defaultSerializer()->serialize(
                 $document->getData(),
                 'json'
             );
         } else {
-            $json = self::$serializer->serialize(
+            $json = SerializerRegistry::defaultSerializer()->serialize(
                 $document,
                 'json',
                 [AbstractNormalizer::IGNORED_ATTRIBUTES => $ignoreFields]
@@ -926,7 +845,7 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
             }
 
             $data = [Database::ID_FIELD => $id];
-            $json = self::$serializer->encode($data, 'json');
+            $json = SerializerRegistry::defaultSerializer()->encode($data, 'json');
             $this->db->insert($this->name, $json);
 
             if ($class) {

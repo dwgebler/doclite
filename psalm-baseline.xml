@@ -7,13 +7,6 @@
       <code><![CDATA[current]]></code>
       <code><![CDATA[valid]]></code>
     </InvalidMethodCall>
-    <InvalidPropertyAssignmentValue>
-      <code><![CDATA[[
-                new DateTimeNormalizer(),
-                new ObjectNormalizer(null, new DocLiteNameConverter(), null, new ReflectionExtractor()),
-                new ArrayDenormalizer(),
-            ]]]></code>
-    </InvalidPropertyAssignmentValue>
     <InvalidReturnStatement>
       <code><![CDATA[$deserialized]]></code>
       <code><![CDATA[(new QueryBuilder($this))->and($field, $condition, $value, ...$values)]]></code>
