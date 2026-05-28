@@ -60,4 +60,27 @@ interface CollectionInterface
      * @throws DatabaseException
      */
     public function getFullTextIndex(string ...$fields): string;
+
+    /**
+     * Insert many raw documents in a single transaction.
+     *
+     * Each row is a plain associative array; if it does not contain the
+     * internal ID field, one is generated.
+     *
+     * @param iterable<array<string, mixed>> $rows
+     * @return int Number of rows inserted.
+     * @throws DatabaseException
+     */
+    public function insertMany(iterable $rows): int;
+
+    /**
+     * Save a sequence of documents (Document instances or plain objects) in
+     * a single transaction.
+     *
+     * @param iterable<object> $documents
+     * @param list<string> $ignoreFields Field names to omit when serializing plain objects.
+     * @return int Number of documents saved.
+     * @throws DatabaseException
+     */
+    public function saveAll(iterable $documents, array $ignoreFields = []): int;
 }

@@ -872,6 +872,71 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     }
 
     /**
+     * Insert many raw documents in a single transaction.
+     *
+     * Each row is a plain associative array; if it does not contain the
+     * internal ID field (Database::ID_FIELD), one is generated.
+     *
+     * @param iterable<array<string, mixed>> $rows
+     * @return int Number of rows inserted.
+     * @throws DatabaseException on read-only DB or on write failure (transaction rolled back).
+     */
+    public function insertMany(iterable $rows): int
+    {
+        if ($this->db->isReadOnly()) {
+            return 0;
+        }
+        $this->beginTransaction();
+        try {
+            $written = 0;
+            foreach ($rows as $row) {
+                if (!isset($row[Database::ID_FIELD])) {
+                    $row[Database::ID_FIELD] = $this->getUuid();
+                }
+                $json = SerializerRegistry::defaultSerializer()->serialize($row, 'json');
+                if ($this->db->insert($this->name, $json)) {
+                    $written++;
+                }
+            }
+            $this->commit();
+            return $written;
+        } catch (\Throwable $e) {
+            $this->rollback();
+            throw $e;
+        }
+    }
+
+    /**
+     * Save a sequence of documents (Document instances or plain objects) in
+     * a single transaction.
+     *
+     * @param iterable<object> $documents
+     * @param list<string> $ignoreFields Field names to omit when serializing plain objects.
+     * @return int Number of documents saved.
+     * @throws DatabaseException on read-only DB or on write failure (transaction rolled back).
+     */
+    public function saveAll(iterable $documents, array $ignoreFields = []): int
+    {
+        if ($this->db->isReadOnly()) {
+            return 0;
+        }
+        $this->beginTransaction();
+        try {
+            $written = 0;
+            foreach ($documents as $document) {
+                if ($this->save($document, null, $ignoreFields)) {
+                    $written++;
+                }
+            }
+            $this->commit();
+            return $written;
+        } catch (\Throwable $e) {
+            $this->rollback();
+            throw $e;
+        }
+    }
+
+    /**
      * @inheritDoc
      */
     public function union(): QueryBuilderInterface

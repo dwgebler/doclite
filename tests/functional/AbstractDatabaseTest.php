@@ -413,4 +413,71 @@ abstract class AbstractDatabaseTest extends TestCase
         $rows = iterator_to_array($col->where('name', 'MATCHES', "hello\x00")->fetch());
         $this->assertCount(0, $rows);
     }
+
+    public function testInsertManyInsertsRowsAndReturnsCount(): void
+    {
+        $col = $this->db->collection('items');
+        $count = $col->insertMany([
+            ['n' => 1],
+            ['n' => 2],
+            ['n' => 3],
+        ]);
+        $this->assertSame(3, $count);
+        $rows = iterator_to_array($col->findAll());
+        $this->assertCount(3, $rows);
+    }
+
+    public function testInsertManyHonorsExistingIdField(): void
+    {
+        $col = $this->db->collection('items');
+        $col->insertMany([
+            ['__id' => 'fixed-1', 'n' => 1],
+        ]);
+        $doc = $col->findOneBy(['__id' => 'fixed-1']);
+        $this->assertNotNull($doc);
+    }
+
+    public function testInsertManyRollsBackOnFailure(): void
+    {
+        $col = $this->db->collection('items');
+        $col->addUniqueIndex('email');
+        try {
+            $col->insertMany([
+                ['email' => 'a@b.com'],
+                ['email' => 'a@b.com'], // duplicate triggers unique-constraint
+            ]);
+            $this->fail('Expected DatabaseException');
+        } catch (\Gebler\Doclite\Exception\DatabaseException $e) {
+            // both rows should be rolled back
+            $this->assertSame(0, $col->count());
+        }
+    }
+
+    public function testSaveAllWritesAllDocuments(): void
+    {
+        $col = $this->db->collection('items');
+        $documents = [];
+        foreach (range(1, 5) as $i) {
+            $doc = $col->get();
+            $doc->setValue('n', $i);
+            $documents[] = $doc;
+        }
+        $count = $col->saveAll($documents);
+        $this->assertSame(5, $count);
+        $this->assertSame(5, $col->count());
+    }
+
+    public function testSaveAllAcceptsGenerator(): void
+    {
+        $col = $this->db->collection('items');
+        $gen = (function () use ($col) {
+            foreach (range(1, 3) as $i) {
+                $doc = $col->get();
+                $doc->setValue('n', $i);
+                yield $doc;
+            }
+        })();
+        $count = $col->saveAll($gen);
+        $this->assertSame(3, $count);
+    }
 }

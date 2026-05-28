@@ -21,7 +21,8 @@ Major version. Breaking changes — see `UPGRADE-2.0.md`.
 - (added as Phase 2 commits land)
 
 ### Features
-- (added as Phase 4 commits land)
+- `Collection::insertMany()` — wrap an iterable of raw rows in a single transaction.
+- `Collection::saveAll()` — same for an iterable of Document/object arguments.
 
 ### Documentation
 - Added `SECURITY.md`, `CONTRIBUTING.md`, `UPGRADE-2.0.md`.
