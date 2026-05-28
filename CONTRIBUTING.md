@@ -45,4 +45,4 @@ without the wrapper.
 
 ## Releases
 
-Maintainers tag releases as `vX.Y.Z` on `main` after CI passes.
+Maintainers tag releases as `X.Y.Z` on `main` after CI passes.
