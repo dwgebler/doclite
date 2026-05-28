@@ -155,16 +155,47 @@ class Document
     }
 
     /**
+     * Tokenize a property path into segments. A literal '.' in a segment
+     * must be escaped as '\\.' in the path string. A bare '.' is the
+     * separator. Empty segments are dropped.
+     *
+     * @return list<string>
+     */
+    private function tokenizePath(string $property): array
+    {
+        $tokens = [];
+        $buf = '';
+        $len = strlen($property);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $property[$i];
+            if ($ch === '\\' && $i + 1 < $len && $property[$i + 1] === '.') {
+                $buf .= '.';
+                $i++;
+                continue;
+            }
+            if ($ch === '.') {
+                if ($buf !== '') {
+                    $tokens[] = $buf;
+                }
+                $buf = '';
+                continue;
+            }
+            $buf .= $ch;
+        }
+        if ($buf !== '') {
+            $tokens[] = $buf;
+        }
+        return $tokens;
+    }
+
+    /**
      * Get a document property by depth, e.g. address.postcode
      * @param string $property
      * @return mixed
      */
     public function getValue(string $property)
     {
-        $paths = array_filter(
-            explode('.', $property),
-            fn($path) => $path !== ''
-        );
+        $paths = $this->tokenizePath($property);
         if (count($paths) === 1) {
             return $this->__get($paths[0]);
         }
@@ -209,10 +240,7 @@ class Document
             $existingValue = null;
         }
 
-        $paths = array_filter(
-            explode('.', $property),
-            fn($path) => $path !== ''
-        );
+        $paths = $this->tokenizePath($property);
         if (count($paths) === 1) {
             $this->__set($paths[0], $value);
             return $this;

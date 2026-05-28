@@ -155,4 +155,33 @@ class DocumentTest extends TestCase
     {
         $this->assertSame(['__id' => '12345', 'name' => 'John Smith'], $this->document->getData());
     }
+
+    public function testGetValueSupportsBackslashEscapedDotInFieldName(): void
+    {
+        $doc = new \Gebler\Doclite\Document(
+            [\Gebler\Doclite\Database::ID_FIELD => 'x', 'a.b' => 'literal'],
+            $this->collection
+        );
+        $this->assertSame('literal', $doc->getValue('a\\.b'));
+    }
+
+    public function testSetValueSupportsBackslashEscapedDotInFieldName(): void
+    {
+        $doc = new \Gebler\Doclite\Document(
+            [\Gebler\Doclite\Database::ID_FIELD => 'x'],
+            $this->collection
+        );
+        $doc->setValue('a\\.b', 'literal');
+        $this->assertSame('literal', $doc->getValue('a\\.b'));
+        $this->assertSame(['__id' => 'x', 'a.b' => 'literal'], $doc->getData());
+    }
+
+    public function testGetValueNestedPathStillWorks(): void
+    {
+        $doc = new \Gebler\Doclite\Document(
+            [\Gebler\Doclite\Database::ID_FIELD => 'x', 'a' => ['b' => 'nested']],
+            $this->collection
+        );
+        $this->assertSame('nested', $doc->getValue('a.b'));
+    }
 }
