@@ -513,10 +513,16 @@ final class QueryBuilder implements QueryBuilderInterface
         if (is_null($wherePart)) {
             $wherePart = '';
         }
-        $default = sprintf('"%1$s".json', $this->collection->getName());
+        $isJsonb = $this->collection->isJsonbStorage();
+        $rawColumn = sprintf('"%1$s".json', $this->collection->getName());
+        $default = $isJsonb
+            ? sprintf('json("%1$s".json) AS json', $this->collection->getName())
+            : $rawColumn;
         $select = null;
         if (!empty($this->joins)) {
-            $select = "json_set({$default}%s) AS json";
+            // For JSONB collections the raw column must be wrapped in json() before passing to json_set
+            $baseForSet = $isJsonb ? sprintf('json(%s)', $rawColumn) : $rawColumn;
+            $select = "json_set({$baseForSet}%s) AS json";
             $queryPart = '';
             $joinCounter = 1;
             foreach ($this->joins as $join) {

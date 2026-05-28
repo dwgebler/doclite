@@ -45,6 +45,14 @@ final class DatabaseConnection implements DatabaseConnectionInterface
      * @var bool
      */
     private bool $slowQueryLogging = false;
+    /**
+     * @var bool|null
+     */
+    private ?bool $jsonbSupport = null;
+    /**
+     * @var string|null
+     */
+    private ?string $sqliteVersion = null;
 
     /**
      * Constructor.
@@ -156,6 +164,27 @@ final class DatabaseConnection implements DatabaseConnectionInterface
         }
 
         return $stmt;
+    }
+
+    /**
+     * Get the SQLite version string.
+     * @return string
+     */
+    public function getSqliteVersion(): string
+    {
+        if ($this->sqliteVersion === null) {
+            $this->sqliteVersion = (string)$this->conn->query('SELECT sqlite_version()')->fetchColumn();
+        }
+        return $this->sqliteVersion;
+    }
+
+    /**
+     * Return true if the underlying SQLite supports native JSONB (3.45.0+).
+     * @return bool
+     */
+    public function supportsJsonb(): bool
+    {
+        return $this->jsonbSupport ??= version_compare($this->getSqliteVersion(), '3.45.0', '>=');
     }
 
     /**

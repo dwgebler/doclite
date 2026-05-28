@@ -29,10 +29,6 @@
       <code><![CDATA[array]]></code>
       <code><![CDATA[object]]></code>
     </InvalidReturnType>
-    <UndefinedInterfaceMethod>
-      <code><![CDATA[executeDmlQuery]]></code>
-      <code><![CDATA[executeDqlQuery]]></code>
-    </UndefinedInterfaceMethod>
   </file>
   <file src="src/Connection/DatabaseConnection.php">
     <PossiblyInvalidArgument>
@@ -44,6 +40,7 @@
       <code><![CDATA[inTransaction]]></code>
       <code><![CDATA[inTransaction]]></code>
       <code><![CDATA[prepare]]></code>
+      <code><![CDATA[query]]></code>
     </PossiblyNullReference>
   </file>
   <file src="src/Database.php">

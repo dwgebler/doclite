@@ -36,6 +36,7 @@ final class FileDatabase extends Database
      * @param LoggerInterface|null $logger
      * @param DatabaseConnectionInterface|null $dbConnection
      * @param FileSystemInterface|null $fileSystem
+     * @param bool $useJsonb Opt-in JSONB storage for new collections (requires SQLite 3.45+)
      * @throws DatabaseException if DB connection cannot be established
      * @throws IOException if path is not valid and writeable
      */
@@ -46,7 +47,8 @@ final class FileDatabase extends Database
         int $timeout = 5,
         ?LoggerInterface $logger = null,
         ?DatabaseConnectionInterface $dbConnection = null,
-        ?FileSystemInterface $fileSystem = null
+        ?FileSystemInterface $fileSystem = null,
+        bool $useJsonb = false,
     ) {
         $this->fileSystem = $fileSystem ?? new FileSystem();
         $validatedPath = $this->validatePath($path);
@@ -54,6 +56,7 @@ final class FileDatabase extends Database
         $this->conn = $dbConnection ?? new DatabaseConnection($dsn, $readOnly, $timeout, $ftsEnabled, $logger);
         $this->readOnly = $readOnly;
         $this->ftsEnabled = $ftsEnabled;
+        $this->useJsonb = $useJsonb && $this->conn->supportsJsonb();
         $this->setJournalMode(JournalMode::Wal);
     }
 

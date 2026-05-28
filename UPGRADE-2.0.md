@@ -111,6 +111,24 @@ single quotes, semicolons, or other punctuation are now rejected.
 If you were passing such identifiers (in practice rare), either
 rename your document fields or open an issue describing the use case.
 
+### 10. New `useJsonb` constructor parameter (additive)
+
+`FileDatabase` and `MemoryDatabase` accept a new `bool $useJsonb = false` trailing
+parameter. Passing `true` opts new collections into JSONB BLOB storage (requires
+SQLite 3.45+); passing the default `false` (or omitting it entirely) keeps
+the existing JSON text behaviour.
+
+Existing databases opened without `useJsonb: true` are entirely unaffected — the
+`_doclite_meta` table is only created when at least one JSONB collection is
+requested, and existing text-JSON tables are never auto-migrated.
+
+**Compatibility note**: the parameter is positional. If you were previously
+passing arguments by position past the `$fileSystem` parameter (e.g. injecting
+a `DatabaseConnectionInterface` and `FileSystemInterface` simultaneously), add
+`useJsonb: true` as a named argument rather than a positional one to avoid
+accidental mismatch — though in practice positional calls past `$fileSystem`
+are uncommon.
+
 ### 9. REGEXP is hardened (MATCHES operator)
 
 The custom REGEXP SQLite function used by the `MATCHES` / `NOT MATCHES`

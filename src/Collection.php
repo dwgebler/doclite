@@ -254,6 +254,16 @@ final class Collection implements QueryBuilderInterface, CollectionInterface
     }
 
     /**
+     * Return true when this collection uses JSONB blob storage.
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function isJsonbStorage(): bool
+    {
+        return $this->db->isJsonbCollection($this->name);
+    }
+
+    /**
      * Execute a DML query and return the number of affected rows.
      * @param string $query
      * @param array $parameters

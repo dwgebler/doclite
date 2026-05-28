@@ -27,6 +27,13 @@ interface CollectionInterface
     public function getName(): string;
 
     /**
+     * Return true when this collection uses JSONB blob storage.
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function isJsonbStorage(): bool;
+
+    /**
      * Execute a DML query and return the number of affected rows.
      * @param string $query
      * @param array $parameters

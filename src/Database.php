@@ -122,6 +122,15 @@ abstract class Database implements DatabaseInterface
      * @var bool
      */
     protected bool $ftsEnabled = false;
+    /**
+     * @var bool
+     */
+    protected bool $useJsonb = false;
+    /**
+     * Cache of which collections use JSONB storage.
+     * @var array<string, bool>|null
+     */
+    private ?array $jsonbCollectionCache = null;
 
     /**
      * Get product version
@@ -461,7 +470,8 @@ abstract class Database implements DatabaseInterface
 
         if (empty($collections)) {
             $collections = array_column($this->conn->queryAll("SELECT name FROM sqlite_master WHERE type ='table' " .
-                "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'fts_%' AND name NOT LIKE '%_cache';"), 'name');
+                "AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'fts_%' AND name NOT LIKE '%_cache' " .
+                "AND name != '_doclite_meta';"), 'name');
         }
 
         foreach ($collections as $i => $collection) {
@@ -647,8 +657,9 @@ abstract class Database implements DatabaseInterface
                 );
             }
         }
-        $query = sprintf('UPDATE "%s" SET json=json_patch(json, ?) ' .
-            'WHERE json_extract(json,\'$.%s\') = ?', $table, self::ID_FIELD);
+        $func = $this->jsonFunc($table);
+        $query = sprintf('UPDATE "%s" SET json=%s(json_patch(json, ?)) ' .
+            'WHERE json_extract(json,\'$.%s\') = ?', $table, $func, self::ID_FIELD);
 
         $updated = $this->conn->executePrepared($query, $json, $id);
         if ($updated === 1) {
@@ -657,7 +668,7 @@ abstract class Database implements DatabaseInterface
             }
             return true;
         } elseif ($updated === 0) {
-            $query = sprintf('INSERT OR IGNORE INTO "%s" (json) VALUES (json(?))', $table);
+            $query = sprintf('INSERT OR IGNORE INTO "%s" (json) VALUES (%s(?))', $table, $func);
             $inserted = $this->conn->executePrepared($query, $json) === 1;
             if ($this->inTransaction) {
                 $this->commit($table);
@@ -735,7 +746,11 @@ abstract class Database implements DatabaseInterface
         if (!$this->isValidTableName($table)) {
             return false;
         }
-        return $this->conn->executePrepared(sprintf('INSERT INTO "%s" (json) VALUES (json(?))', $table), $json) === 1;
+        $func = $this->jsonFunc($table);
+        return $this->conn->executePrepared(
+            sprintf('INSERT INTO "%s" (json) VALUES (%s(?))', $table, $func),
+            $json
+        ) === 1;
     }
 
     /**
@@ -755,8 +770,8 @@ abstract class Database implements DatabaseInterface
                 );
             }
 
-            $query = sprintf('SELECT json FROM "%s" ORDER BY ' .
-                "json_extract(json, '$.%s') ASC", $table, self::ID_FIELD);
+            $query = sprintf('SELECT %s AS json FROM "%s" ORDER BY ' .
+                "json_extract(json, '$.%s') ASC", $this->jsonColumn($table), $table, self::ID_FIELD);
             $parameters = [];
         } else {
             list('query' => $query, 'parameters' => $parameters) =
@@ -825,9 +840,10 @@ abstract class Database implements DatabaseInterface
         }
 
         $query = sprintf(
-            'SELECT json FROM "%1$s" WHERE ' . $whereClause . ' = json_array(%2$s)',
+            'SELECT %3$s AS json FROM "%1$s" WHERE ' . $whereClause . ' = json_array(%2$s)',
             $table,
-            $placeholders
+            $placeholders,
+            $this->jsonColumn($table)
         );
         $parameters = array_merge($criteriaFields, $criteriaValues);
         return ['query' => $query, 'parameters' => $parameters];
@@ -869,7 +885,7 @@ abstract class Database implements DatabaseInterface
         }
 
         return $this->conn->valueQuery(
-            sprintf("SELECT json FROM %s WHERE json_extract(json,'$.%s') = ?", $table, self::ID_FIELD),
+            sprintf("SELECT %s FROM %s WHERE json_extract(json,'$.%s') = ?", $this->jsonColumn($table), $table, self::ID_FIELD),
             $id
         ) ?? '';
     }
@@ -892,6 +908,77 @@ abstract class Database implements DatabaseInterface
     }
 
     /**
+     * Return true if the internal _doclite_meta table exists.
+     * Uses a raw query to bypass isValidTableName (the leading underscore
+     * is deliberate — the table is reserved for DocLite internals).
+     * @return bool
+     * @throws DatabaseException
+     */
+    private function metaTableExists(): bool
+    {
+        return !empty($this->conn->queryAll(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='_doclite_meta';"
+        ));
+    }
+
+    /**
+     * Ensure the _doclite_meta table exists.
+     * @return void
+     * @throws DatabaseException
+     */
+    private function ensureMetaTable(): void
+    {
+        if (!$this->metaTableExists()) {
+            $this->conn->exec(
+                'CREATE TABLE IF NOT EXISTS "_doclite_meta" ("collection" TEXT PRIMARY KEY, "storage" TEXT NOT NULL)'
+            );
+        }
+    }
+
+    /**
+     * Return true when the named collection uses JSONB blob storage.
+     * Hydrates from the _doclite_meta table on first call (per-instance cache).
+     * @param string $table
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function isJsonbCollection(string $table): bool
+    {
+        if ($this->jsonbCollectionCache === null) {
+            $this->jsonbCollectionCache = [];
+            if ($this->metaTableExists()) {
+                foreach ($this->conn->queryAll('SELECT collection, storage FROM "_doclite_meta"') as $row) {
+                    $this->jsonbCollectionCache[(string)$row['collection']] = ($row['storage'] === 'jsonb');
+                }
+            }
+        }
+        return $this->jsonbCollectionCache[$table] ?? false;
+    }
+
+    /**
+     * Return the SQL write function to use for a given table: 'jsonb' or 'json'.
+     * @param string $table
+     * @return string
+     * @throws DatabaseException
+     */
+    private function jsonFunc(string $table): string
+    {
+        return $this->isJsonbCollection($table) ? 'jsonb' : 'json';
+    }
+
+    /**
+     * Return the SQL column expression to project text JSON for a given table.
+     * For JSONB collections wraps in json(); for text collections returns the bare column.
+     * @param string $table
+     * @return string
+     * @throws DatabaseException
+     */
+    private function jsonColumn(string $table): string
+    {
+        return $this->isJsonbCollection($table) ? 'json(json)' : 'json';
+    }
+
+    /**
      * Create a table.
      * @param string $name
      * @return bool
@@ -906,6 +993,21 @@ abstract class Database implements DatabaseInterface
         if (!$this->isValidTableName($name)) {
             return false;
         }
+
+        if ($this->useJsonb && $this->conn->supportsJsonb()) {
+            $this->ensureMetaTable();
+            $this->conn->exec(sprintf('CREATE TABLE IF NOT EXISTS "%s" (json BLOB NOT NULL)', $name));
+            $this->conn->executePrepared(
+                'INSERT OR IGNORE INTO "_doclite_meta" (collection, storage) VALUES (?, ?)',
+                $name,
+                'jsonb'
+            );
+            if ($this->jsonbCollectionCache !== null) {
+                $this->jsonbCollectionCache[$name] = true;
+            }
+            return true;
+        }
+
         return $this->conn->exec(sprintf('CREATE TABLE IF NOT EXISTS "%s" (json TEXT NOT NULL)', $name)) === 0;
     }
 

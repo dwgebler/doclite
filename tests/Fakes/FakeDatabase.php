@@ -429,4 +429,28 @@ class FakeDatabase implements DatabaseInterface
     {
         // TODO: Implement setLogger() method.
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function isJsonbCollection(string $table): bool
+    {
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function executeDqlQuery(string $query, array $parameters): iterable
+    {
+        yield from [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function executeDmlQuery(string $query, array $parameters): int
+    {
+        return 0;
+    }
 }

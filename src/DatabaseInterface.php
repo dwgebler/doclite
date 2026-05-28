@@ -262,4 +262,30 @@ interface DatabaseInterface
      * @param LoggerInterface $logger
      */
     public function setLogger(LoggerInterface $logger): void;
+
+    /**
+     * Return true when the named collection uses JSONB blob storage.
+     * @param string $table
+     * @return bool
+     * @throws DatabaseException
+     */
+    public function isJsonbCollection(string $table): bool;
+
+    /**
+     * Execute a DQL query and return results as a generator.
+     * @param string $query
+     * @param array $parameters
+     * @return iterable
+     * @throws DatabaseException
+     */
+    public function executeDqlQuery(string $query, array $parameters): iterable;
+
+    /**
+     * Execute a DML query and return the number of affected rows.
+     * @param string $query
+     * @param array $parameters
+     * @return int
+     * @throws DatabaseException
+     */
+    public function executeDmlQuery(string $query, array $parameters): int;
 }

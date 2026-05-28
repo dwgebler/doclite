@@ -115,4 +115,16 @@ interface DatabaseConnectionInterface
      * @param LoggerInterface $logger
      */
     public function setLogger(LoggerInterface $logger): void;
+
+    /**
+     * Get the SQLite version string.
+     * @return string
+     */
+    public function getSqliteVersion(): string;
+
+    /**
+     * Return true if the underlying SQLite supports native JSONB (3.45.0+).
+     * @return bool
+     */
+    public function supportsJsonb(): bool;
 }
