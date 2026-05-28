@@ -847,6 +847,7 @@ class Collection implements QueryBuilderInterface
             $id = $this->getDocumentId($document);
         }
         if ($document instanceof Document) {
+            $document->validateJsonSchema();
             $json = self::$serializer->serialize(
                 $document->getData(),
                 'json'

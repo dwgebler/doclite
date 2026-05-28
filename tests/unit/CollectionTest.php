@@ -311,4 +311,24 @@ class CollectionTest extends TestCase
         $this->assertTrue($expected === $newHashes);
     }
 
+    public function testCollectionSaveValidatesJsonSchemaOnDocument(): void
+    {
+        // Set the violating value BEFORE attaching the schema so that
+        // Document::__set's own auto-validation does not fire.  Once the
+        // schema is attached the document is in a non-conforming state that
+        // only Collection::save should catch.
+        $doc = $this->collection->get();
+        $doc->setValue('n', 'not-an-integer');
+        $doc->addJsonSchema(json_encode([
+            'type' => 'object',
+            'required' => ['n'],
+            'properties' => [
+                'n' => ['type' => 'integer'],
+            ],
+        ]));
+
+        $this->expectException(\Gebler\Doclite\Exception\DatabaseException::class);
+        $this->collection->save($doc);
+    }
+
 }
