@@ -770,7 +770,7 @@ class Collection implements QueryBuilderInterface
             }
         }
 
-        if (!empty($data)) {
+        if ($data !== null && $data !== '') {
             if ($class) {
                 return $this->deserializeClass(
                     $data,

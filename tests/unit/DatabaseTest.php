@@ -252,15 +252,40 @@ class DatabaseTest extends TestCase
         $this->assertSame([], $actual);
     }
 
-    public function testFindReturnsEmptyStringOnEmptyCriteria()
+    public function testFindReturnsNullOnEmptyCriteria()
     {
-        $this->assertSame('', $this->db->find('foobar', []));
+        $this->assertNull($this->db->find('foobar', []));
     }
 
     public function testFindReturnsConnResultOnNonEmptyCriteria()
     {
-        $this->conn->method('valueQuery')->wilLReturn('foo');
+        $this->conn->method('valueQuery')->willReturn('foo');
         $this->assertSame('foo', $this->db->find('foobar', ['baz' => true]));
+    }
+
+    public function testFindReturnsNullWhenNoMatch()
+    {
+        $this->conn->method('valueQuery')->willReturn(null);
+        $this->assertNull($this->db->find('foobar', ['name' => 'nope']));
+    }
+
+    public function testCreateIndexReturnsTrueWhenValueQueryReturnsNull()
+    {
+        $this->conn->method('valueQuery')->willReturn(null);
+        $this->conn->method('exec')->willReturn(0);
+        $this->assertTrue($this->db->createIndex('foo', false, 'bar'));
+    }
+
+    public function testGetSyncModeReturnsZeroWhenValueQueryReturnsNull()
+    {
+        $this->conn->method('valueQuery')->willReturn(null);
+        $this->assertSame(0, $this->db->getSyncMode());
+    }
+
+    public function testGetJournalModeReturnsEmptyStringWhenValueQueryReturnsNull()
+    {
+        $this->conn->method('valueQuery')->willReturn(null);
+        $this->assertSame('', $this->db->getJournalMode());
     }
 
     public function testGetByIdExceptionOnInvalidTableName()

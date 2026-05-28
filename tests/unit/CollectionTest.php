@@ -77,6 +77,14 @@ class CollectionTest extends TestCase
         $this->assertNull($this->collection->findOneBy(['foo' => 'bar']));
     }
 
+    public function testFindOneByReturnsNullWhenFindReturnsNull()
+    {
+        // After the ?string change, find() returns null (not '') on no match.
+        // FakeDatabase::find() must return null when findResults is null.
+        $this->db->setResults(null);
+        $this->assertNull($this->collection->findOneBy(['foo' => 'nomatch']));
+    }
+
     public function testFindOneByReturnsDocument()
     {
         $data = [

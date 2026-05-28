@@ -95,12 +95,13 @@ interface DatabaseInterface
     public function findAll(string $table, array $criteria): iterable;
     /**
      * Find a single JSON record by key=value criteria from the specified table.
+     * Returns null if no record matches or if criteria is empty.
      * @param string $table
      * @param array $criteria
-     * @return string
+     * @return ?string
      * @throws DatabaseException
      */
-    public function find(string $table, array $criteria): string;
+    public function find(string $table, array $criteria): ?string;
     /**
      * Retrieve a JSON record by Id from the specified table.
      * @param string $table

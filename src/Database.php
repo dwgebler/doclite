@@ -241,7 +241,7 @@ abstract class Database implements DatabaseInterface
      */
     public function getJournalMode(): string
     {
-        return strtoupper($this->conn->valueQuery('PRAGMA journal_mode'));
+        return strtoupper($this->conn->valueQuery('PRAGMA journal_mode') ?? '');
     }
 
     /**
@@ -530,7 +530,7 @@ abstract class Database implements DatabaseInterface
      */
     public function getSyncMode(): int
     {
-        return (int)$this->conn->valueQuery('PRAGMA synchronous');
+        return (int)($this->conn->valueQuery('PRAGMA synchronous') ?? 0);
     }
 
     /**
@@ -829,18 +829,19 @@ abstract class Database implements DatabaseInterface
 
     /**
      * Find a single JSON record by key=value criteria from the specified table.
+     * Returns null if no record matches or if criteria is empty.
      * @param string $table
      * @param array $criteria
-     * @return string
+     * @return ?string
      * @throws DatabaseException
      */
-    public function find(string $table, array $criteria): string
+    public function find(string $table, array $criteria): ?string
     {
         if (count($criteria) === 0) {
-            return '';
+            return null;
         }
 
-        list('query' => $query, 'parameters' => $parameters) =
+        ['query' => $query, 'parameters' => $parameters] =
             $this->buildFindQuery($table, $criteria);
         return $this->conn->valueQuery($query, ...$parameters);
     }
@@ -864,7 +865,7 @@ abstract class Database implements DatabaseInterface
         return $this->conn->valueQuery(
             sprintf("SELECT json FROM %s WHERE json_extract(json,'$.%s') = ?", $table, self::ID_FIELD),
             $id
-        );
+        ) ?? '';
     }
 
     /**
@@ -1122,8 +1123,8 @@ abstract class Database implements DatabaseInterface
         $viewName = 'v_' . $innerTableName;
         $ftsTableName = strtolower('fts_' . $innerTableName);
 
-        $existingFts = (bool)$this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
-            'type=\'table\' and name=?', $ftsTableName);
+        $existingFts = (bool)($this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
+            'type=\'table\' and name=?', $ftsTableName) ?? '0');
 
         if ($existingFts) {
             return true;
@@ -1229,8 +1230,8 @@ abstract class Database implements DatabaseInterface
         $fieldsQuery = implode(',', $fieldsMap);
         $indexName = 'idx_' . strtolower($table) . '__' .
             implode('__', array_map('strtolower', $fields));
-        $existingIndex = (bool)$this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
-            'type=\'index\' and name=?', $indexName);
+        $existingIndex = (bool)($this->conn->valueQuery('SELECT COUNT(*) FROM sqlite_master WHERE ' .
+            'type=\'index\' and name=?', $indexName) ?? '0');
         if (!$existingIndex) {
             return $this->conn->exec(sprintf($createIndex . " %s ON %s(%s)", $indexName, $table, $fieldsQuery)) === 0;
         }

@@ -299,13 +299,14 @@ class DatabaseConnection
     }
 
     /**
-     * Execute a query and return the first column of first row as single value.
+     * Execute a query and return the first column of first row as single value,
+     * or null if no row was found.
      * @param string $query
      * @param mixed ...$params
-     * @return string
+     * @return ?string
      * @throws DatabaseException
      */
-    public function valueQuery(string $query, ...$params): string
+    public function valueQuery(string $query, ...$params): ?string
     {
         try {
             $start = microtime(true);
@@ -313,9 +314,9 @@ class DatabaseConnection
             $stmt->execute();
             $end = microtime(true);
             $this->logSlowQuery($end - $start, $query, $params);
-            $result = (string)$stmt->fetchColumn();
+            $result = $stmt->fetchColumn();
             $stmt->closeCursor();
-            return $result;
+            return $result === false ? null : (string)$result;
         } catch (PDOException $e) {
             $ex = new DatabaseException('Error executing query', DatabaseException::ERR_QUERY, $e, $query, $params);
             $this->logException($ex);

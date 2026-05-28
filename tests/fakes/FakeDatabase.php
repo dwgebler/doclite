@@ -208,8 +208,11 @@ class FakeDatabase implements DatabaseInterface
     /**
      * @inheritDoc
      */
-    public function find(string $table, array $criteria): string
+    public function find(string $table, array $criteria): ?string
     {
+        if ($this->findResults === null) {
+            return null;
+        }
         return (string)$this->findResults;
     }
 
