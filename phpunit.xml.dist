@@ -1,17 +1,31 @@
 <?xml version="1.0"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" backupGlobals="false" backupStaticAttributes="false" bootstrap="./vendor/autoload.php" colors="true" testdox="true" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true" processIsolation="false" stopOnFailure="false" verbose="true" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
-  <coverage processUncoveredFiles="true">
-    <include>
-      <directory suffix=".php">./src</directory>
-    </include>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="./vendor/autoload.php"
+         colors="true"
+         testdox="true"
+         backupGlobals="false"
+         processIsolation="false"
+         stopOnFailure="false"
+         failOnWarning="false"
+         failOnDeprecation="false"
+         failOnRisky="false"
+         failOnNotice="false">
+  <coverage>
     <report>
       <clover outputFile="build/logs/clover.xml"/>
     </report>
   </coverage>
+  <source>
+    <include>
+      <directory suffix=".php">./src</directory>
+    </include>
+  </source>
   <testsuites>
     <testsuite name="All">
       <directory>./tests</directory>
+      <exclude>./tests/functional/AbstractDatabaseTest.php</exclude>
+      <exclude>./tests/unit/AbstractFileSystemTest.php</exclude>
     </testsuite>
   </testsuites>
-  <logging/>
 </phpunit>
