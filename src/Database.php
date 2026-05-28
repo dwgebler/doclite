@@ -31,29 +31,62 @@ abstract class Database implements DatabaseInterface
     public const ID_FIELD = '__id';
     /**
      * Pragma modes for sync behaviour
-     * @var int
+     * @deprecated 2.0 use {@see SyncMode::Off}
      */
     public const MODE_SYNC_OFF = 0;
+    /**
+     * @deprecated 2.0 use {@see SyncMode::Normal}
+     */
     public const MODE_SYNC_NORMAL = 1;
+    /**
+     * @deprecated 2.0 use {@see SyncMode::Full}
+     */
     public const MODE_SYNC_FULL = 2;
+    /**
+     * @deprecated 2.0 use {@see SyncMode::Extra}
+     */
     public const MODE_SYNC_EXTRA = 3;
     /**
      * Pragma modes for rollback journal behaviour
-     * @var string
+     * @deprecated 2.0 use {@see JournalMode::None}
      */
     public const MODE_JOURNAL_NONE = 'OFF';
+    /**
+     * @deprecated 2.0 use {@see JournalMode::Memory}
+     */
     public const MODE_JOURNAL_MEMORY = 'MEMORY';
+    /**
+     * @deprecated 2.0 use {@see JournalMode::Wal}
+     */
     public const MODE_JOURNAL_WAL = 'WAL';
+    /**
+     * @deprecated 2.0 use {@see JournalMode::Delete}
+     */
     public const MODE_JOURNAL_DELETE = 'DELETE';
+    /**
+     * @deprecated 2.0 use {@see JournalMode::Truncate}
+     */
     public const MODE_JOURNAL_TRUNCATE = 'TRUNCATE';
+    /**
+     * @deprecated 2.0 use {@see JournalMode::Persist}
+     */
     public const MODE_JOURNAL_PERSIST = 'PERSIST';
     /**
      * Import/export modes
-     * @var int
+     * @deprecated 2.0 use {@see ImportMode::Collections}
      */
     public const MODE_IMPORT_COLLECTIONS = 0;
+    /**
+     * @deprecated 2.0 use {@see ImportMode::Documents}
+     */
     public const MODE_IMPORT_DOCUMENTS = 1;
+    /**
+     * @deprecated 2.0 use {@see ExportMode::Collections}
+     */
     public const MODE_EXPORT_COLLECTIONS = 0;
+    /**
+     * @deprecated 2.0 use {@see ExportMode::Documents}
+     */
     public const MODE_EXPORT_DOCUMENTS = 1;
     /**
      * Version number.
@@ -150,25 +183,23 @@ abstract class Database implements DatabaseInterface
      * Import collections in to database.
      * @param string $path
      * @param string $format json, yaml, xml or csv
-     * @param int $mode One of the import/export mode constants
+     * @param ImportMode|int $mode One of the import/export mode constants or an ImportMode enum value
      * @return bool
      * @throws DatabaseException
      */
-    public function import(string $path, string $format, int $mode): bool
+    public function import(string $path, string $format, ImportMode|int $mode): bool
     {
+        $modeValue = $mode instanceof ImportMode ? $mode->value : $mode;
+        if (ImportMode::tryFrom($modeValue) === null) {
+            return false;
+        }
+
         $format = strtolower($format);
         if (!in_array($format, ['json', 'yaml', 'xml', 'csv'])) {
             return false;
         }
 
-        if (
-            $mode !== self::MODE_IMPORT_COLLECTIONS &&
-            $mode !== self::MODE_IMPORT_DOCUMENTS
-        ) {
-            return false;
-        }
-
-        if ($mode === self::MODE_IMPORT_COLLECTIONS) {
+        if ($modeValue === self::MODE_IMPORT_COLLECTIONS) {
             $files = $this->fileSystem->scanFiles($path, $format);
             foreach ($files as $collection) {
                 $this->importCollectionFile($collection);
@@ -402,15 +433,20 @@ abstract class Database implements DatabaseInterface
      * Export the database to flat files.
      * @param string $path Directory path to write files
      * @param string $format json, yaml, xml or csv
-     * @param int $mode One of the export mode constants
+     * @param ExportMode|int $mode One of the export mode constants or an ExportMode enum value
      * @param array $collections Collection names and/or instances to export,
      *  defaults to all collections in database.
      * @return bool
      * @throws DatabaseException
      * @throws IOException
      */
-    public function export(string $path, string $format, int $mode, array $collections = []): bool
+    public function export(string $path, string $format, ExportMode|int $mode, array $collections = []): bool
     {
+        $modeValue = $mode instanceof ExportMode ? $mode->value : $mode;
+        if (ExportMode::tryFrom($modeValue) === null) {
+            return false;
+        }
+
         if (!$this->fileSystem->isDirectory($path)) {
             $mkPath = $path . DIRECTORY_SEPARATOR . 'data';
             if (!$this->fileSystem->createPath($mkPath)) {
@@ -420,13 +456,6 @@ abstract class Database implements DatabaseInterface
 
         $format = strtolower($format);
         if (!in_array($format, ['json', 'yaml', 'xml', 'csv'])) {
-            return false;
-        }
-
-        if (
-            $mode !== self::MODE_EXPORT_COLLECTIONS &&
-            $mode !== self::MODE_EXPORT_DOCUMENTS
-        ) {
             return false;
         }
 
@@ -442,7 +471,7 @@ abstract class Database implements DatabaseInterface
         }
 
         foreach ($collections as $collection) {
-            $this->exportCollection($path, $format, $mode, $collection);
+            $this->exportCollection($path, $format, $modeValue, $collection);
         }
         return true;
     }
@@ -535,55 +564,32 @@ abstract class Database implements DatabaseInterface
 
     /**
      * Set synchronous mode.
-     * @param int $mode
+     * @param SyncMode|int $mode A SyncMode enum value or one of the MODE_SYNC_* constants
      * @return bool
      * @throws DatabaseException
      */
-    public function setSyncMode(int $mode): bool
+    public function setSyncMode(SyncMode|int $mode): bool
     {
-        if (
-            in_array($mode, [
-                self::MODE_SYNC_OFF,
-                self::MODE_SYNC_NORMAL,
-                self::MODE_SYNC_FULL,
-                self::MODE_SYNC_EXTRA,
-            ])
-        ) {
-            return $this->conn->exec(sprintf(
-                'PRAGMA synchronous=%d',
-                $mode
-            )) === 0;
+        $value = $mode instanceof SyncMode ? $mode->value : $mode;
+        if (SyncMode::tryFrom($value) === null) {
+            return false;
         }
-        return false;
+        return $this->conn->exec(sprintf('PRAGMA synchronous=%d', $value)) === 0;
     }
 
     /**
      * Set rollback journal mode.
-     * @param string $mode
+     * @param JournalMode|string $mode A JournalMode enum value or one of the MODE_JOURNAL_* constants
      * @return bool
      * @throws DatabaseException
      */
-    public function setJournalMode(string $mode): bool
+    public function setJournalMode(JournalMode|string $mode): bool
     {
-        if (
-            in_array(
-                $mode,
-                [
-                    self::MODE_JOURNAL_NONE,
-                    self::MODE_JOURNAL_MEMORY,
-                    self::MODE_JOURNAL_DELETE,
-                    self::MODE_JOURNAL_PERSIST,
-                    self::MODE_JOURNAL_TRUNCATE,
-                    self::MODE_JOURNAL_WAL,
-                ]
-            )
-        ) {
-            return $this->conn->exec(sprintf(
-                'PRAGMA journal_mode=%s',
-                $mode
-            )) === 0;
+        $value = $mode instanceof JournalMode ? $mode->value : strtoupper($mode);
+        if (JournalMode::tryFrom($value) === null) {
+            return false;
         }
-        return false;
+        return $this->conn->exec(sprintf('PRAGMA journal_mode=%s', $value)) === 0;
     }
 
     /**

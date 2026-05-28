@@ -5,6 +5,8 @@ namespace Gebler\Doclite\Tests\functional;
 use Gebler\Doclite\Collection;
 use Gebler\Doclite\Database;
 use Gebler\Doclite\Exception\DatabaseException;
+use Gebler\Doclite\JournalMode;
+use Gebler\Doclite\SyncMode;
 use PHPUnit\Framework\TestCase;
 
 abstract class AbstractDatabaseTest extends TestCase
@@ -244,6 +246,18 @@ abstract class AbstractDatabaseTest extends TestCase
         $this->db->setSyncMode(Database::MODE_SYNC_FULL);
         $this->assertSame(
             Database::MODE_SYNC_FULL, $this->db->getSyncMode());
+    }
+
+    public function testSetSyncModeAcceptsEnum(): void
+    {
+        $this->assertTrue($this->db->setSyncMode(SyncMode::Normal));
+        $this->assertSame(SyncMode::Normal->value, $this->db->getSyncMode());
+    }
+
+    public function testSetJournalModeAcceptsEnum(): void
+    {
+        $this->assertTrue($this->db->setJournalMode(JournalMode::Memory));
+        $this->assertSame(JournalMode::Memory->value, $this->db->getJournalMode());
     }
 
     public function testCommit()

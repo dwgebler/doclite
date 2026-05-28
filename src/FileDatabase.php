@@ -53,7 +53,7 @@ class FileDatabase extends Database
         $this->conn = $dbConnection ?? new DatabaseConnection($dsn, $readOnly, $timeout, $ftsEnabled, $logger);
         $this->readOnly = $readOnly;
         $this->ftsEnabled = $ftsEnabled;
-        $this->setJournalMode(self::MODE_JOURNAL_WAL);
+        $this->setJournalMode(JournalMode::Wal);
     }
 
     /**

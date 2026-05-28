@@ -195,16 +195,16 @@ interface DatabaseInterface
     public function deleteFullTextIndex(string $table, string $hashId): bool;
     /**
      * Set the database sync mode.
-     * @param int $mode
+     * @param SyncMode|int $mode A SyncMode enum value or one of the MODE_SYNC_* constants
      * @return bool
      */
-    public function setSyncMode(int $mode): bool;
+    public function setSyncMode(SyncMode|int $mode): bool;
     /**
      * Set the database journal mode.
-     * @param string $mode
+     * @param JournalMode|string $mode A JournalMode enum value or one of the MODE_JOURNAL_* constants
      * @return bool
      */
-    public function setJournalMode(string $mode): bool;
+    public function setJournalMode(JournalMode|string $mode): bool;
     /**
      * Get the database sync mode.
      * @return int

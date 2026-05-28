@@ -366,12 +366,12 @@ class FakeDatabase implements DatabaseInterface
     }
 
 
-    public function setSyncMode(int $mode): bool
+    public function setSyncMode(\Gebler\Doclite\SyncMode|int $mode): bool
     {
         return true;
     }
 
-    public function setJournalMode(string $mode): bool
+    public function setJournalMode(\Gebler\Doclite\JournalMode|string $mode): bool
     {
         return true;
     }

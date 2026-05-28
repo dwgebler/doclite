@@ -48,11 +48,27 @@ if ($json === null) {
 ### 3. Mode constants are now PHP 8.1 enums
 
 The `Database::MODE_SYNC_*`, `MODE_JOURNAL_*`, `MODE_IMPORT_*`, and
-`MODE_EXPORT_*` constants are wrapped by backed enums
-(`SyncMode`, `JournalMode`, `ImportMode`, `ExportMode`).
+`MODE_EXPORT_*` constants are superseded by backed enums in the same
+namespace: `SyncMode`, `JournalMode`, `ImportMode`, and `ExportMode`.
 
-The old constants remain available and continue to work as scalar
+Before:
+
+```php
+$db->setSyncMode(Database::MODE_SYNC_NORMAL);
+$db->setJournalMode(Database::MODE_JOURNAL_WAL);
+```
+
+After (preferred):
+
+```php
+$db->setSyncMode(SyncMode::Normal);
+$db->setJournalMode(JournalMode::Wal);
+```
+
+The original constants remain available and continue to work as scalar
 arguments — they are now `@deprecated` and will be removed in 3.0.
+The new enums live in the same namespace: `SyncMode`, `JournalMode`,
+`ImportMode`, `ExportMode`.
 
 ### 4. Default SQLite busy-timeout raised to 5 seconds
 
