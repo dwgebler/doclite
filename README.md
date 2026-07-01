@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=dwgebler&project=doclite&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 # DocLite
 
 A powerful PHP NoSQL document store built on top of SQLite.
